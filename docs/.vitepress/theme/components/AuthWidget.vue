@@ -1,0 +1,583 @@
+<template>
+  <div class="auth-widget">
+    <!-- 已登录 -->
+    <template v-if="currentUser">
+      <span class="auth-user">{{ currentUser.name }}</span>
+      <button class="auth-btn auth-btn-switch" @click="showSwitchModal = true">切换账户</button>
+      <button class="auth-btn auth-btn-register" @click="showRegisterModal = true">注册新账户</button>
+    </template>
+
+    <!-- 未登录 -->
+    <template v-else>
+      <button class="auth-btn auth-btn-register" @click="showRegisterModal = true">注册</button>
+      <button class="auth-btn auth-btn-login" @click="showLoginModal = true">登录</button>
+    </template>
+
+    <!-- ======== 注册弹窗 ======== -->
+    <Teleport to="body">
+      <div v-if="showRegisterModal" class="auth-modal-overlay" @click.self="showRegisterModal = false">
+        <div class="auth-modal">
+          <h3>📝 注册新账户</h3>
+          <div class="auth-form">
+            <label>姓名</label>
+            <input v-model="regForm.name" placeholder="你的姓名" :disabled="submitting" />
+            <label>手机号</label>
+            <input v-model="regForm.phone" placeholder="6-15位数字" :disabled="submitting" />
+            <label>密码</label>
+            <input v-model="regForm.password" type="password" placeholder="至少6位" :disabled="submitting" />
+            <label>确认密码</label>
+            <input v-model="regForm.confirmPassword" type="password" placeholder="再次输入密码" :disabled="submitting" />
+            <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
+            <p v-if="successMsg" class="auth-success">{{ successMsg }}</p>
+            <div class="auth-actions">
+              <button class="auth-submit" @click="doRegister" :disabled="submitting">
+                {{ submitting ? '注册中...' : '注册' }}
+              </button>
+              <button class="auth-cancel" @click="showRegisterModal = false">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== 登录弹窗 ======== -->
+      <div v-if="showLoginModal" class="auth-modal-overlay" @click.self="showLoginModal = false">
+        <div class="auth-modal">
+          <h3>🔐 登录</h3>
+          <div class="auth-form">
+            <label>姓名</label>
+            <input v-model="loginForm.name" placeholder="输入姓名" :disabled="submitting" />
+            <label>密码</label>
+            <input v-model="loginForm.password" type="password" placeholder="输入密码" :disabled="submitting"
+              @keyup.enter="doLogin" />
+            <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
+            <p v-if="successMsg" class="auth-success">{{ successMsg }}</p>
+            <div class="auth-actions">
+              <button class="auth-submit" @click="doLogin" :disabled="submitting">
+                {{ submitting ? '登录中...' : '登录' }}
+              </button>
+              <button class="auth-cancel" @click="showLoginModal = false">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== 切换账户弹窗 ======== -->
+      <div v-if="showSwitchModal" class="auth-modal-overlay" @click.self="showSwitchModal = false">
+        <div class="auth-modal">
+          <h3>🔄 切换账户</h3>
+          <div class="auth-form">
+            <label>选择账户</label>
+            <select v-model="switchForm.userId" class="auth-select">
+              <option value="">— 请选择 —</option>
+              <option v-for="u in displayUsers" :key="u.id" :value="u.id">
+                {{ u.name }}{{ u.phone !== '00000000000' ? ' (' + u.phone + ')' : '' }}
+              </option>
+            </select>
+            <label>密码</label>
+            <input v-model="switchForm.password" type="password" placeholder="输入该账户密码" :disabled="submitting"
+              @keyup.enter="doSwitch" />
+            <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
+            <p v-if="successMsg" class="auth-success">{{ successMsg }}</p>
+            <div class="auth-actions">
+              <button class="auth-submit" @click="doSwitch" :disabled="submitting || !switchForm.userId">
+                {{ submitting ? '切换中...' : '确认切换' }}
+              </button>
+              <button class="auth-cancel" @click="showSwitchModal = false">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+
+// ============================================================
+// localStorage 存储层（无需后端服务器）
+// ============================================================
+const USERS_KEY = 'it-trainer-users'
+const ACTIVE_USER_KEY = 'it-trainer-active-user-id'
+
+function loadUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY) || '[]')
+  } catch { return [] }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+}
+
+function loadActiveUserId() {
+  return localStorage.getItem(ACTIVE_USER_KEY) || ''
+}
+
+function saveActiveUserId(id) {
+  localStorage.setItem(ACTIVE_USER_KEY, String(id))
+}
+
+// 密码哈希 — 优先使用浏览器原生 Web Crypto API，不可用时降级到纯 JS SHA-256
+// 两种方式结果完全一致，互不依赖外部网络
+async function hashPassword(password) {
+  const input = password + 'it-trainer-salt'
+  return await sha256(input)
+}
+
+async function sha256(message) {
+  // 优先尝试浏览器原生 API（硬件加速，仅安全上下文可用）
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const encoder = new TextEncoder()
+      const data = encoder.encode(message)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    } catch (_) {
+      // 降级到纯 JS 实现
+    }
+  }
+  // 纯 JavaScript SHA-256（无任何外部依赖，在任何网络环境均可运行）
+  return pureSha256(message)
+}
+
+function pureSha256(message) {
+  function rotr(x, n) { return (x >>> n) | (x << (32 - n)) }
+  function ch(x, y, z) { return (x & y) ^ (~x & z) }
+  function maj(x, y, z) { return (x & y) ^ (x & z) ^ (y & z) }
+  function bsig0(x) { return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22) }
+  function bsig1(x) { return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25) }
+  function ssig0(x) { return rotr(x, 7) ^ rotr(x, 18) ^ (x >>> 3) }
+  function ssig1(x) { return rotr(x, 17) ^ rotr(x, 19) ^ (x >>> 10) }
+
+  const K = [
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+  ]
+
+  const msgBytes = []
+  for (let i = 0; i < message.length; i++) {
+    const c = message.charCodeAt(i)
+    if (c < 0x80) { msgBytes.push(c) }
+    else if (c < 0x800) { msgBytes.push(0xc0 | (c >>> 6), 0x80 | (c & 0x3f)) }
+    else { msgBytes.push(0xe0 | (c >>> 12), 0x80 | ((c >>> 6) & 0x3f), 0x80 | (c & 0x3f)) }
+  }
+
+  const bitLen = msgBytes.length * 8
+  msgBytes.push(0x80)
+  while ((msgBytes.length + 8) % 64 !== 0) { msgBytes.push(0) }
+  for (let i = 0; i < 8; i++) {
+    msgBytes.push(Number((BigInt(bitLen) >> BigInt(56 - i * 8)) & 0xffn))
+  }
+
+  let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]
+
+  for (let i = 0; i < msgBytes.length; i += 64) {
+    const W = new Array(64)
+    for (let t = 0; t < 16; t++) {
+      W[t] = (msgBytes[i + t * 4] << 24) | (msgBytes[i + t * 4 + 1] << 16) |
+             (msgBytes[i + t * 4 + 2] << 8) | msgBytes[i + t * 4 + 3]
+    }
+    for (let t = 16; t < 64; t++) {
+      W[t] = (ssig1(W[t - 2]) + W[t - 7] + ssig0(W[t - 15]) + W[t - 16]) >>> 0
+    }
+    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7]
+    for (let t = 0; t < 64; t++) {
+      const T1 = (h + bsig1(e) + ch(e, f, g) + K[t] + W[t]) >>> 0
+      const T2 = (bsig0(a) + maj(a, b, c)) >>> 0
+      h = g; g = f; f = e; e = (d + T1) >>> 0; d = c; c = b; b = a; a = (T1 + T2) >>> 0
+    }
+    H = [H[0]+a, H[1]+b, H[2]+c, H[3]+d, H[4]+e, H[5]+f, H[6]+g, H[7]+h].map(x => x >>> 0)
+  }
+
+  return H.map(x => x.toString(16).padStart(8, '0')).join('')
+}
+
+// ============================================================
+// 响应式状态
+// ============================================================
+const currentUser = ref(null)
+const userList = ref([])
+const showRegisterModal = ref(false)
+const showLoginModal = ref(false)
+const showSwitchModal = ref(false)
+const submitting = ref(false)
+const errorMsg = ref('')
+const successMsg = ref('')
+
+const regForm = ref({ name: '', phone: '', password: '', confirmPassword: '' })
+const loginForm = ref({ name: '', password: '' })
+const switchForm = ref({ userId: '', password: '' })
+
+const displayUsers = computed(() => {
+  return userList.value.filter(u => u.name !== 'default')
+})
+
+function clearMessages() {
+  errorMsg.value = ''
+  successMsg.value = ''
+}
+
+function fetchCurrentUser() {
+  const users = loadUsers()
+  userList.value = users
+  const activeId = loadActiveUserId()
+  if (activeId) {
+    const found = users.find(u => String(u.id) === String(activeId))
+    if (found) {
+      currentUser.value = { id: String(found.id), name: found.name, phone: found.phone }
+      return
+    }
+  }
+  currentUser.value = null
+}
+
+function fetchUsers() {
+  userList.value = loadUsers()
+}
+
+async function doRegister() {
+  clearMessages()
+  const { name, phone, password, confirmPassword } = regForm.value
+
+  if (!name.trim() || !phone.trim() || !password) {
+    errorMsg.value = '请填写所有字段'
+    return
+  }
+  if (!/^\d{6,15}$/.test(phone)) {
+    errorMsg.value = '手机号格式无效（6-15位数字）'
+    return
+  }
+  if (password !== confirmPassword) {
+    errorMsg.value = '两次输入的密码不一致'
+    return
+  }
+  if (password.length < 6) {
+    errorMsg.value = '密码至少 6 位'
+    return
+  }
+
+  submitting.value = true
+  try {
+    // 模拟短暂延迟，让用户感知正在处理
+    await new Promise(r => setTimeout(r, 300))
+
+    const users = loadUsers()
+
+    // 检查是否已存在
+    const existing = users.find(u => u.name === name.trim() && u.phone === phone.trim())
+    if (existing) {
+      errorMsg.value = `用户 "${name}" (${phone}) 已存在，请直接登录`
+      submitting.value = false
+      return
+    }
+
+    // 检查同名不同号
+    const sameName = users.find(u => u.name === name.trim())
+    if (sameName) {
+      errorMsg.value = `"${name}" 已存在（手机号: ${sameName.phone}），请换一个名字或使用已有账户`
+      submitting.value = false
+      return
+    }
+
+    const passwordHash = await hashPassword(password)
+    const maxId = users.reduce((max, u) => Math.max(max, u.id || 0), 0)
+    const newUser = {
+      id: maxId + 1,
+      name: name.trim(),
+      phone: phone.trim(),
+      password_hash: passwordHash,
+      created_at: new Date().toISOString(),
+    }
+
+    users.push(newUser)
+    saveUsers(users)
+    saveActiveUserId(newUser.id)
+
+    currentUser.value = { id: String(newUser.id), name: newUser.name, phone: newUser.phone }
+    fetchUsers()
+    successMsg.value = '注册成功！已自动登录。'
+    regForm.value = { name: '', phone: '', password: '', confirmPassword: '' }
+    setTimeout(() => { showRegisterModal.value = false; clearMessages() }, 1500)
+  } catch (e) {
+    errorMsg.value = '注册失败: ' + e.message
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function doLogin() {
+  clearMessages()
+  const { name, password } = loginForm.value
+  if (!name.trim() || !password) {
+    errorMsg.value = '请输入姓名和密码'
+    return
+  }
+
+  submitting.value = true
+  try {
+    await new Promise(r => setTimeout(r, 300))
+    const users = loadUsers()
+    const matched = users.filter(u => u.name === name.trim())
+
+    if (matched.length === 0) {
+      errorMsg.value = `未找到用户 "${name}"，请先注册`
+      submitting.value = false
+      return
+    }
+
+    const passwordHash = await hashPassword(password)
+    let matchedUser = null
+    for (const u of matched) {
+      if (!u.password_hash) {
+        // 老用户无密码，为它设置密码
+        u.password_hash = passwordHash
+        saveUsers(users)
+        matchedUser = u
+        break
+      }
+      if (u.password_hash === passwordHash) {
+        matchedUser = u
+        break
+      }
+    }
+
+    if (!matchedUser) {
+      errorMsg.value = '密码错误'
+      submitting.value = false
+      return
+    }
+
+    saveActiveUserId(matchedUser.id)
+    currentUser.value = { id: String(matchedUser.id), name: matchedUser.name, phone: matchedUser.phone }
+    successMsg.value = '登录成功'
+    loginForm.value = { name: '', password: '' }
+    setTimeout(() => { showLoginModal.value = false; clearMessages() }, 1000)
+  } catch (e) {
+    errorMsg.value = '登录失败: ' + e.message
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function doSwitch() {
+  clearMessages()
+  const { userId, password } = switchForm.value
+  if (!userId) {
+    errorMsg.value = '请选择账户'
+    return
+  }
+  if (!password) {
+    errorMsg.value = '请输入密码'
+    return
+  }
+
+  const targetUser = userList.value.find(u => String(u.id) === userId)
+  if (!targetUser) {
+    errorMsg.value = '未找到该用户'
+    return
+  }
+
+  submitting.value = true
+  try {
+    await new Promise(r => setTimeout(r, 300))
+    const users = loadUsers()
+    const fullUser = users.find(u => String(u.id) === userId)
+
+    if (!fullUser) {
+      errorMsg.value = '未找到该用户'
+      submitting.value = false
+      return
+    }
+
+    const passwordHash = await hashPassword(password)
+    if (!fullUser.password_hash) {
+      // 老用户无密码 → 自动设置密码
+      fullUser.password_hash = passwordHash
+      saveUsers(users)
+    } else if (fullUser.password_hash !== passwordHash) {
+      errorMsg.value = '密码错误'
+      submitting.value = false
+      return
+    }
+
+    saveActiveUserId(userId)
+    currentUser.value = { id: String(fullUser.id), name: fullUser.name, phone: fullUser.phone }
+    successMsg.value = `已切换到 ${fullUser.name}`
+    switchForm.value = { userId: '', password: '' }
+    setTimeout(() => { showSwitchModal.value = false; clearMessages() }, 1000)
+  } catch (e) {
+    errorMsg.value = '切换失败: ' + e.message
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(() => {
+  fetchCurrentUser()
+})
+</script>
+
+<style scoped>
+.auth-widget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-user {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vp-c-brand);
+  margin-right: 4px;
+}
+
+.auth-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  white-space: nowrap;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.auth-btn:hover {
+  border-color: var(--vp-c-brand);
+  background: var(--vp-c-bg-soft);
+}
+
+.auth-btn-register {
+  background: var(--vp-c-brand);
+  color: white;
+  border-color: var(--vp-c-brand);
+}
+
+.auth-btn-register:hover {
+  background: var(--vp-c-brand-dark);
+}
+
+.auth-btn-login {
+  border-color: var(--vp-c-brand);
+  color: var(--vp-c-brand);
+}
+
+/* Modal styles */
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.auth-modal {
+  background: var(--vp-c-bg);
+  border-radius: 12px;
+  padding: 28px;
+  min-width: 340px;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.auth-modal h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+}
+
+.auth-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  margin-top: 12px;
+  color: var(--vp-c-text-2);
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  box-sizing: border-box;
+}
+
+.auth-form input:focus {
+  border-color: var(--vp-c-brand);
+  outline: none;
+}
+
+.auth-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+}
+
+.auth-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.auth-success {
+  color: #10b981;
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.auth-submit {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--vp-c-brand);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: var(--vp-c-brand-dark);
+}
+
+.auth-cancel {
+  padding: 10px 16px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  cursor: pointer;
+}
+</style>

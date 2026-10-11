@@ -1,0 +1,80 @@
+{
+  "id": "linux-01",
+  "title": "Linux 基础测验",
+  "difficulty": "beginner",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "Linux 中，哪个目录存放系统配置文件？",
+      "options": ["/home", "/var", "/etc", "/tmp"],
+      "correct": 2,
+      "explanation": "/etc 存放系统配置文件（如 /etc/nginx, /etc/ssh）。/home 是用户目录，/var 是可变数据，/tmp 是临时文件。"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "命令 `chmod 755 script.sh` 设置的权限是什么？",
+      "options": ["rwxr-xr-x", "rw-r--r--", "rwxrwxrwx", "rw-------"],
+      "correct": 0,
+      "explanation": "755 = rwx(7)r-x(5)r-x(5)。所有者可读写执行，组和其他人可读可执行。"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "哪个命令用于实时查看系统进程？",
+      "options": ["ps", "ls", "top", "df"],
+      "correct": 2,
+      "explanation": "top 实时显示进程和系统资源使用（htop 是其增强版）。ps 是快照，ls 是列文件，df 是磁盘使用。"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "`grep -r 'error' /var/log/` 中的 `-r` 参数是什么意思？",
+      "options": ["只读模式", "递归搜索子目录", "反向匹配", "显示行号"],
+      "correct": 1,
+      "explanation": "`-r` (recursive) 递归搜索目录及其所有子目录中的文件。"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "在 Bash 脚本中，`$?` 表示什么？",
+      "options": ["脚本的PID", "上一条命令的退出码", "当前用户ID", "参数个数"],
+      "correct": 1,
+      "explanation": "$? 是上一条命令的退出状态码。0 表示成功，非0 表示失败。"
+    },
+    {
+      "id": "q6",
+      "type": "fill-blank",
+      "question": "使用 systemctl 启动 nginx 服务的命令是什么？",
+      "correct": "systemctl start nginx",
+      "explanation": "systemctl start nginx 启动服务，systemctl enable nginx 设置开机自启，systemctl status nginx 查看状态。"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "管道符 `|` 的作用是什么？",
+      "options": [
+        "把输出写入文件",
+        "把一个命令的输出作为另一个命令的输入",
+        "在后台运行命令",
+        "注释掉一行代码"
+      ],
+      "correct": 1,
+      "explanation": "管道 `|` 连接两个命令，左边命令的 stdout 变成右边命令的 stdin。`>` 用于写入文件，`&` 用于后台运行，`#` 用于注释。"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "怎样在脚本中定义一个函数？",
+      "options": [
+        "function myFunc { ... }",
+        "def myFunc() { ... }",
+        "myFunc() { ... }",
+        "A 和 C 都可以"
+      ],
+      "correct": 3,
+      "explanation": "Bash 中定义函数有两种语法：`myFunc() { ... }` 或 `function myFunc { ... }`，推荐使用第一种。"
+    }
+  ]
+}

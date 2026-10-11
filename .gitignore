@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.vitepress/dist/
+.vitepress/cache/
+*.db
+*.db-journal
+*.db-wal
+.DS_Store
+Thumbs.db
+*.log
+
+# 密钥文件 — 永不提交
+.env
+
+# 用户数据目录 — 包含个人学习记录
+data/
+!data/.gitkeep

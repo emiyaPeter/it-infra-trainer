@@ -1,0 +1,172 @@
+{
+  "id": "networking-01",
+  "title": "网络基础作业一：OSI模型与子网划分",
+  "description": "覆盖阶段1核心知识点，对标CompTIA Network+ 和软考-网络工程师",
+  "totalScore": 100,
+  "passScore": 70,
+  "certMapping": "CompTIA Network+ (N10-009) Domain 1 / 软考-网工 上午题",
+  "nextHomework": "networking-02",
+  "passMessage": "扎实的基础！你已经掌握了网络工程师最核心的计算能力。",
+  "failMessage": "子网划分需要多练习，每天做5道题，两周后就能心算。",
+  "feedback": [
+    { "threshold": 50, "topics": ["复习OSI七层模型", "练习二进制转换", "动手做子网练习"] },
+    { "threshold": 80, "topics": ["重点复习子网划分计算题", "一遍遍练习直到能心算"] }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "数据从应用层发送到物理层，会依次经过哪些层？（从上到下）",
+      "score": 5,
+      "options": [
+        "应用层→网络层→传输层→链路层→物理层",
+        "应用层→传输层→网络层→链路层→物理层",
+        "应用层→链路层→网络层→传输层→物理层",
+        "物理层→链路层→网络层→传输层→应用层"
+      ],
+      "correct": 1,
+      "explanation": "封装顺序：应用层(HTTP等) → 传输层(TCP/UDP加端口) → 网络层(IP加地址) → 链路层(MAC加帧头) → 物理层(转为电/光信号)"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "TCP协议的三次握手中，第二步是什么？",
+      "score": 5,
+      "options": [
+        "客户端发送 SYN",
+        "服务端发送 SYN",
+        "服务端发送 SYN+ACK",
+        "客户端发送 ACK"
+      ],
+      "correct": 2,
+      "explanation": "三次握手：①客户端→SYN→服务端 ②服务端→SYN+ACK→客户端 ③客户端→ACK→服务端"
+    },
+    {
+      "id": "q3",
+      "type": "fill-blank",
+      "question": "192.168.1.0/26 可以划分出几个可用主机地址？",
+      "hint": "公式：2^(32-N) - 2",
+      "score": 5,
+      "correct": "62",
+      "explanation": "/26 = 2^6 - 2 = 64 - 2 = 62 个可用主机。减去2是因为全0是网络地址、全1是广播地址。"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "某公司有5个部门，分别需要60、30、20、10、5台主机。从192.168.10.0/24开始分配，部门1（60台）应获得哪个子网？",
+      "score": 10,
+      "options": [
+        "192.168.10.0/25 (可用126台，浪费66个)",
+        "192.168.10.0/26 (可用62台，勉强够用)",
+        "192.168.10.0/27 (可用30台，不够)",
+        "192.168.10.0/24 (可用254台，严重浪费)"
+      ],
+      "correct": 1,
+      "explanation": "需要60+2=62个地址 → 需要/26 (62可用)。但如果要为扩展留余量，选/25也可。从节省地址角度，/26刚好。实际上很多企业会选/25留缓冲。此题的考察点是：2^6=64, 64-2=62≥60 → /26"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "以下哪组全部是私有IP地址？",
+      "score": 5,
+      "options": [
+        "10.0.0.1, 172.15.0.1, 192.168.1.1",
+        "10.0.0.1, 172.16.0.1, 192.168.1.1",
+        "10.0.0.1, 172.32.0.1, 192.168.1.1",
+        "11.0.0.1, 172.16.0.1, 192.167.1.1"
+      ],
+      "correct": 1,
+      "explanation": "私有地址：10.0.0.0/8, 172.16.0.0/12 (172.16-172.31), 192.168.0.0/16。172.15属于公网，172.32超出了/12范围。"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "DNS查询 `www.example.com` 时，如果本地DNS缓存没有记录，查询顺序是？",
+      "score": 5,
+      "options": [
+        "根DNS → .com DNS → example.com DNS → 返回IP",
+        "example.com DNS → .com DNS → 根DNS → 返回IP",
+        ".com DNS → 根DNS → example.com DNS → 返回IP",
+        "直接查询 example.com DNS → 返回IP"
+      ],
+      "correct": 0,
+      "explanation": "DNS 是递归+迭代查询：从根域名服务器(.)开始 → 顶级域名服务器(.com) → 权威DNS服务器(example.com) → 获得结果。先问'根'，再一级级往下。"
+    },
+    {
+      "id": "q7",
+      "type": "fill-blank",
+      "question": "CIDR表示法中，子网掩码255.255.255.240对应的斜线记法是 /？",
+      "score": 5,
+      "hint": "240的二进制中有几个1？240 = 11110000",
+      "correct": "/28",
+      "explanation": "255.255.255.240 = /28 (前三个255各8位=24，240的二进制11110000有4位，24+4=28)"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "关于UDP协议，以下哪项描述是正确的？",
+      "score": 5,
+      "options": [
+        "UDP保证数据按顺序到达",
+        "UDP头部比TCP更大",
+        "UDP适合DNS查询和实时视频流",
+        "UDP建立连接需要三次握手"
+      ],
+      "correct": 2,
+      "explanation": "UDP无连接、不保证顺序、不保证送达、头部仅8字节(TCP需20-60)。这些特性使UDP非常适合对延迟敏感的场景：DNS、VoIP、视频直播、在线游戏。丢了就丢了，别等重传。"
+    },
+    {
+      "id": "q9",
+      "type": "short-answer",
+      "question": "简单描述NAT的工作过程：家庭电脑192.168.1.5访问百度时，数据包经过路由器后发生了什么变化？（至少提到IP地址和端口的转换）",
+      "keywords": ["源IP", "转换", "端口", "映射", "公网", "NAT表"],
+      "score": 10,
+      "explanation": "NAT核心过程：①电脑发出请求(源IP=192.168.1.5, 源端口=随机高端口) ②路由器记录映射条目到NAT表 ③替换源IP为公网IP，可能替换源端口 ④百度回复到公网IP ⑤路由器查NAT表，还原为私网IP:端口，转发给电脑"
+    },
+    {
+      "id": "q10",
+      "type": "multiple-choice",
+      "question": "traceroute 利用IP头部的哪个字段来实现路径追踪？",
+      "score": 5,
+      "options": ["源IP地址", "TTL (Time to Live)", "协议字段", "标识字段"],
+      "correct": 1,
+      "explanation": "traceroute 通过逐跳增加TTL值：TTL=1只到第一跳(路由器回复ICMP Time Exceeded)，TTL=2到第二跳...如此往复直到到达目标。这是非常巧妙的利用TTL的设计。"
+    }
+  ],
+  "practical": [
+    {
+      "id": "p1",
+      "title": "子网划分计算",
+      "instruction": "在纸上（或终端中计算）完成以下子网划分，然后在终端中创建一个文件 ~/homework/subnet-result.txt，写入你的答案。\n\n将 10.0.0.0/16 划分为 8 个等大子网，写出每个子网的网络地址、可用IP范围和广播地址。\n\n提示：用 echo 命令写入文件。",
+      "score": 15,
+      "check": {
+        "type": "file-exists",
+        "path": "~/homework/subnet-result.txt"
+      },
+      "hint": "每个子网差 10.0.X.0 中的X递增 32 (因为/16 → /19，第三个字节的主机位是3位=8个子网，每个子网大小2^5=32)"
+    },
+    {
+      "id": "p2",
+      "title": "网络诊断实践",
+      "instruction": "在 WSL2 终端中依次执行以下命令并观察输出：\n1. ping -c 4 8.8.8.8\n2. nslookup baidu.com\n3. 追踪本机到 baidu.com 的路由 (traceroute baidu.com 或 tracert.exe baidu.com)\n\n在终端中执行完毕后按 Enter。",
+      "score": 10,
+      "check": {
+        "type": "command-output",
+        "command": "echo 'practical check passed'",
+        "expected": "practical check passed"
+      },
+      "hint": "这是一道实践题，需要你实际执行命令并观察结果。重点是理解输出内容的含义。"
+    },
+    {
+      "id": "p3",
+      "title": "防火墙端口分析",
+      "instruction": "查看你本机的监听端口：在WSL2中运行 ss -tlnp。列出其中所有的LISTEN端口，并识别每个端口对应的服务。\n\n将输出写入 ~/homework/ports.txt，在每个端口行后面加上服务名称（如 :22 SSH）。",
+      "score": 10,
+      "check": {
+        "type": "file-exists",
+        "path": "~/homework/ports.txt"
+      },
+      "hint": "ss -tlnp 显示监听端口，最后一列是进程名。使用 ss -tlnp > ~/homework/ports.txt 保存。"
+    }
+  ]
+}

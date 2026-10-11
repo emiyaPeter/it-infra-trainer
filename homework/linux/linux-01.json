@@ -1,0 +1,102 @@
+{
+  "id": "linux-01",
+  "title": "Linux 基础作业一：命令行与权限管理",
+  "description": "覆盖阶段2核心知识点，对标 RHCSA (EX200) 和 CompTIA Linux+",
+  "totalScore": 100,
+  "passScore": 70,
+  "certMapping": "RHCSA EX200 / 软考-网工 下午题",
+  "nextHomework": "linux-02",
+  "feedback": [
+    { "threshold": 50, "topics": ["复习Linux文件系统结构", "重新练习基本命令", "重点: chmod权限计算"] },
+    { "threshold": 80, "topics": ["关注Shell脚本部分", "练习管道和重定向"] }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "在Linux中，/etc 目录的作用是什么？",
+      "score": 5,
+      "options": ["存放用户个人文件", "存放系统配置文件", "存放临时文件", "存放可执行程序"],
+      "correct": 1,
+      "explanation": "/etc = Editable Text Configuration，存放几乎所有系统和服务的配置文件（nginx配置、ssh配置、用户信息等）。"
+    },
+    {
+      "id": "q2",
+      "type": "fill-blank",
+      "question": "在Linux命令中，将 command1 的输出作为 command2 的输入，使用什么符号？",
+      "score": 5,
+      "correct": ["|", "管道", "管道符"],
+      "explanation": "管道符 | 是Linux命令行的核心设计思想——将简单命令组合成复杂数据处理流水线。"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "执行 `chmod 640 file.txt` 后，文件权限是什么？",
+      "score": 5,
+      "options": [
+        "rw-r----- (所有者读写，组只读，其他人无权限)",
+        "rwxr-x--- (所有者全部，组读执行，其他人无)",
+        "rw-r--r-- (所有者读写，其他人只读)",
+        "rwx------ (只有所有者有全部权限)"
+      ],
+      "correct": 0,
+      "explanation": "640 = rw-r-----: 6(rw)给所有者, 4(r)给组, 0(-)给其他人。这是文件和目录最常用的安全权限设置。"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "一个进程的 PID 是 1234，以下哪个命令可以安全地终止它？",
+      "score": 5,
+      "options": [
+        "kill 1234（默认SIGTERM，给进程清理的机会）",
+        "kill -9 1234（SIGKILL，立即强杀）",
+        "kill -15 1234（等同于默认kill）",
+        "A和C都可以，优先用A"
+      ],
+      "correct": 3,
+      "explanation": "默认 kill 发送 SIGTERM(15)，进程可以捕获并做清理工作（关闭文件、释放资源）。kill -9 发送 SIGKILL，内核直接终止进程，不给任何清理机会——应该是最后的手段。"
+    },
+    {
+      "id": "q5",
+      "type": "fill-blank",
+      "question": "使用 systemctl 设置 nginx 服务开机自启的完整命令是什么？",
+      "score": 5,
+      "correct": ["systemctl enable nginx", "sudo systemctl enable nginx"],
+      "explanation": "systemctl enable 创建符号链接到 /etc/systemd/system/multi-user.target.wants/，使服务在开机时自动启动。"
+    },
+    {
+      "id": "q6",
+      "type": "short-answer",
+      "question": "描述以下命令的作用：`ps aux | grep nginx | awk '{print $2}' | xargs kill`",
+      "keywords": ["列出进程", "过滤nginx", "提取PID", "第二列", "终止进程", "管道"],
+      "score": 10,
+      "explanation": "①ps aux 列所有进程 → ②grep nginx 过滤出nginx相关 → ③awk '{print $2}' 提取PID(第2列) → ④xargs kill 把PID传给kill命令终止。这是管道组合的经典示例。"
+    }
+  ],
+  "practical": [
+    {
+      "id": "p1",
+      "title": "创建用户和权限设置",
+      "instruction": "在 WSL2 中完成以下操作：\n1. 创建一个目录 ~/homework/shared\n2. 创建文件 ~/homework/shared/readme.txt，内容为 'Welcome to Linux'\n3. 将文件权限设置为 644 (rw-r--r--)\n4. 创建脚本 ~/homework/shared/check.sh，内容为 '#!/bin/bash\\necho OK'\n5. 将脚本权限设为 755 (rwxr-xr-x)\n\n完成后按 Enter 验证。",
+      "score": 20,
+      "check": { "type": "permission-check", "path": "~/homework/shared/readme.txt", "expected": "644" },
+      "hint": "mkdir -p ~/homework/shared; echo 'Welcome to Linux' > ~/homework/shared/readme.txt; chmod 644 ~/homework/shared/readme.txt"
+    },
+    {
+      "id": "p2",
+      "title": "管道组合实战",
+      "instruction": "在WSL2中统计/var/log目录下占用空间最大的5个文件：\n使用命令组合：du, sort, head\n将输出保存到 ~/homework/largest-files.txt\n\n提示：du -ah /var/log 2>/dev/null | sort -rh | head -5",
+      "score": 15,
+      "check": { "type": "file-exists", "path": "~/homework/largest-files.txt" },
+      "hint": "du -ah /var/log 2>/dev/null 列出所有文件和大小；sort -rh 按大小逆序排列；head -5 取前5个"
+    },
+    {
+      "id": "p3",
+      "title": "grep日志分析",
+      "instruction": "在WSL2中查看系统日志中的认证相关记录：\n1. 运行: sudo grep -i 'authentication' /var/log/syslog 2>/dev/null\n2. 将输出追加到 ~/homework/auth-log.txt\n\n（如果没有相关记录，用 echo 'No auth failures found - good security!' > ~/homework/auth-log.txt 代替）",
+      "score": 10,
+      "check": { "type": "file-exists", "path": "~/homework/auth-log.txt" },
+      "hint": "如果/var/log/syslog不存在或为空，用替代命令创建文件。重点是学会grep日志的思路。"
+    }
+  ]
+}

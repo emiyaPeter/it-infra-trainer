@@ -1,0 +1,6 @@
+{
+  "$schema": "./config.schema.json",
+  "_comment": "IT Infra Trainer 配置文件 — 此文件可安全分享，不包含任何密钥",
+  "dataDir": "./data",
+  "currentUserFile": "./data/active-user.json"
+}

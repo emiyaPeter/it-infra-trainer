@@ -1,0 +1,141 @@
+{
+  "id": "troubleshooting-01",
+  "title": "故障排查综合测验",
+  "difficulty": "beginner",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "电脑按开机键完全没反应（无风扇转动、无指示灯），最不可能的原因是？",
+      "options": ["电源线未插好", "主板24pin供电松动", "硬盘数据线松动", "电源开关损坏"],
+      "correct": 2,
+      "explanation": "硬盘数据线松动不会导致电脑完全无反应——电脑在没有硬盘的情况下仍能通电并进入BIOS。电源线、主板供电和电源开关都可能导致整机不通电。"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "获得169.254.x.x的IP地址意味着什么？",
+      "options": ["成功连接互联网", "DHCP服务器分配了该IP", "DHCP获取失败，Windows自动配置了APIPA地址", "DNS解析失败"],
+      "correct": 2,
+      "explanation": "169.254.x.x是APIPA（自动专用IP地址），当DHCP客户端无法联系到DHCP服务器时，Windows自动分配此地址段。此地址只能在同一网段的APIPA设备间通信，无法上网。"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "ping 8.8.8.8成功，但ping baidu.com失败，说明什么问题？",
+      "options": ["网卡损坏", "DNS解析有问题", "路由器故障", "防火墙拦截了ICMP"],
+      "correct": 1,
+      "explanation": "能ping通互联网IP（8.8.8.8）说明网络连通性正常。不能ping通域名说明域名解析功能有问题——DNS服务器不可达或配置错误。"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "打印队列卡住无法删除时，最重要的操作是什么？",
+      "options": ["重启电脑", "重新安装打印机驱动", "重启Print Spooler服务", "删除打印机再重新添加"],
+      "correct": 2,
+      "explanation": "重启Print Spooler服务（net stop spooler && net start spooler）能解决50%以上的打印问题。打印队列中的文件被服务锁定，重启服务会释放锁定并清空内存中的队列。这是最快最有效的方法。"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "SMART指标中哪个代表硬盘即将损坏的最危险信号？",
+      "options": ["Power-On Hours (通电时间)", "Temperature (温度)", "Reallocated Sectors Count (重映射扇区)", "Power Cycle Count (开关机次数)"],
+      "correct": 2,
+      "explanation": "重映射扇区计数(05)表示硬盘已经发现坏扇区并用备用扇区替换。任何大于0的值都意味着盘面开始老化，应尽快备份数据并考虑更换。通电时间长不一定有问题，温度高可以改善散热，开关机次数只是统计信息。"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "浏览器报错 NET::ERR_CERT_DATE_INVALID，最先检查什么？",
+      "options": ["重新安装浏览器", "检查系统日期和时间是否正确", "清除浏览器缓存", "更换DNS服务器"],
+      "correct": 1,
+      "explanation": "证书有效期依赖于系统时间来判断。如果电脑的日期或年份设置错误（如年份设成2020年），浏览器会认为所有2026年有效的证书都已过期。这是最常见也最容易被忽略的原因！"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "'QQ/微信能正常用，但浏览器打不开任何网页'最可能的原因是？",
+      "options": ["网线断了", "DNS解析或代理设置有问题", "电脑中毒了", "内存不足"],
+      "correct": 1,
+      "explanation": "QQ/微信等即时通讯软件通常使用IP直连或有自己的DNS解析，不依赖系统DNS设置。浏览器打不开网页通常是DNS解析问题或浏览器被配置了错误的代理。"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "关于SSD维护，以下哪个说法是正确的？",
+      "options": [
+        "SSD也应该定期运行磁盘碎片整理",
+        "SSD完全不需要任何维护",
+        "Windows会自动对SSD执行TRIM优化，不需要手动碎片整理",
+        "SSD需要每个月做一次chkdsk /r"
+      ],
+      "correct": 2,
+      "explanation": "Windows 10/11会自动识别SSD并定期执行TRIM（通知SSD哪些块可以回收），这不同于碎片整理。SSD的碎片整理不仅没用，还会产生大量写入加速SSD磨损。"
+    },
+    {
+      "id": "q9",
+      "type": "multiple-choice",
+      "question": "公司网络打印机突然时好时坏，最可能的解决方案是？",
+      "options": [
+        "给打印机设置固定IP或在路由器做MAC地址绑定",
+        "更换更贵的打印机",
+        "把所有电脑的打印驱动重装一遍",
+        "把打印机搬到更近的地方"
+      ],
+      "correct": 0,
+      "explanation": "打印机IP变化是最常见的网络打印机'时好时坏'原因。如果打印机使用DHCP自动获取IP，IP租约到期后可能被分配不同的IP，导致部分电脑上配置的打印机端口指向了已经失效的IP地址。"
+    },
+    {
+      "id": "q10",
+      "type": "multiple-choice",
+      "question": "sfc /scannow无法修复某个系统文件时，下一步应该用什么命令？",
+      "options": ["chkdsk /f", "DISM /Online /Cleanup-Image /RestoreHealth", "重新安装Windows", "netsh winsock reset"],
+      "correct": 1,
+      "explanation": "DISM /RestoreHealth从Windows Update获取正确的系统文件来修复本地的组件存储。sfc从本地存储恢复文件，如果本地存储（WinSxS）本身损坏了，就需要DISM先修复本地存储，再运行sfc。"
+    },
+    {
+      "id": "q11",
+      "type": "multiple-choice",
+      "question": "激光打印机打印出来的字一擦就掉，是什么问题？",
+      "options": ["碳粉用完了", "定影组件有问题（温度不够或定影膜破损）", "硒鼓坏了", "纸张太厚"],
+      "correct": 1,
+      "explanation": "激光打印需要高温高压将碳粉熔固在纸上（定影过程）。如果定影温度不够或定影膜破损，碳粉无法牢固附着，用手指就能擦掉。这与碳粉量、硒鼓状态无关。"
+    },
+    {
+      "id": "q12",
+      "type": "multiple-choice",
+      "question": "检查硬盘健康状况，以下哪个工具最合适？",
+      "options": ["CPU-Z", "CrystalDiskInfo", "HWiNFO64", "MemTest86"],
+      "correct": 1,
+      "explanation": "CrystalDiskInfo专门用于读取硬盘的SMART数据，直观显示健康状态、温度、通电时间、重映射扇区等关键指标。CPU-Z用于CPU/内存信息，HWiNFO64是综合传感器监控，MemTest86用于内存诊断。"
+    },
+    {
+      "id": "q13",
+      "type": "multiple-choice",
+      "question": "排查网络问题时，'OSI自下而上排查法'应该从哪里开始？",
+      "options": ["应用层（检查DNS和浏览器设置）", "网络层（ping网关）", "物理层（检查网线是否插好、灯是否亮）", "传输层（检查端口和防火墙）"],
+      "correct": 2,
+      "explanation": "OSI自下而上排查法从第1层（物理层）开始。物理层是最基础也最容易出问题的一层——网线松了、接口氧化、设备没通电等。80%的网络问题都在第1-3层，从物理层开始省时省力。"
+    },
+    {
+      "id": "q14",
+      "type": "multiple-choice",
+      "question": "关于CPU硅脂更换，以下说法错误的是？",
+      "options": [
+        "硅脂一般建议1-2年更换一次",
+        "硅脂涂得越多导热效果越好",
+        "更换前最好让电脑运行10分钟预热软化硅脂",
+        "笔记本裸Die芯片的硅脂用量应比台式机少"
+      ],
+      "correct": 1,
+      "explanation": "硅脂的作用是填充CPU顶盖和散热器底面的微观缝隙。它的导热系数远低于金属，所以只需要薄薄一层填充缝隙即可。涂得太多反而会增加热阻、降低散热效果，还可能溢出到主板造成短路。"
+    },
+    {
+      "id": "q15",
+      "type": "fill-blank",
+      "question": "要彻底重置Windows打印队列，需要先停止哪个服务？（填写服务名称，如'Print Spooler'）",
+      "correct": "Print Spooler",
+      "explanation": "Print Spooler（打印后台处理程序）管理所有打印作业。命令 'net stop spooler' 停止它，然后可以安全地删除 C:\\Windows\\System32\\spool\\PRINTERS\\ 下的卡住文件。"
+    }
+  ]
+}

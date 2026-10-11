@@ -1,0 +1,109 @@
+================================================================
+   IT 基础设施工程师培训助手 — 使用文档
+   版本: 2.1 | 更新: 2026-07-21
+================================================================
+
+目录:
+  一、快速开始           四、用户管理
+  二、学习方式           五、推荐学习路径
+  三、CLI 命令速查       六、常见操作场景
+                         七、配置与定制
+
+一、快速开始
+────────────────────────────────────────────────────────────
+
+  cd it-infra-trainer
+  npm install
+  npm run init-db
+  npm run dev              ← 一键启动（认证 + 网站）npm run docs:dev
+
+  浏览器打开 http://localhost:5173
+  右上角注册账户（姓名 + 手机号 + 密码）
+  点击 "🚀 一个月速成" 开始学习！
+
+二、学习方式
+────────────────────────────────────────────────────────────
+
+  方式一: Web 文档网站（推荐新手）
+    npm run dev         启动后访问 http://localhost:5173
+    功能: 课程阅读 | 注册登录 | 仪表盘 | 番茄钟
+
+  方式二: CLI 命令行
+    npm run cli -- quiz networking    做测验
+    npm run cli -- lab --list         做实验
+    npm run cli -- progress           看进度
+
+三、CLI 命令速查
+────────────────────────────────────────────────────────────
+
+  学习:
+    npm run cli -- roadmap           学习路线图
+    npm run cli -- roadmap -p 2      阶段2详情
+    npm run cli -- start "Linux"     开始学习会话
+    npm run cli -- search "关键词"    搜索课程内容
+
+  测验与实验:
+    npm run cli -- quiz              列出测验
+    npm run cli -- quiz networking   网络测验
+    npm run cli -- lab --list        列出实验
+    npm run cli -- lab linux-file-permissions  做实验
+    npm run cli -- homework --list   列出作业
+
+  进度与统计:
+    npm run cli -- progress          学习进度
+    npm run cli -- stats             学习统计
+
+  工具:
+    npm run cli -- env-check         检查环境配置
+
+四、用户管理
+────────────────────────────────────────────────────────────
+
+  Web 端（推荐）:
+    右上角按钮操作 → 注册 / 登录 / 切换账户
+    需要先启动 npm run dev（认证 + 网站双服务）
+
+  CLI 命令行:
+    npm run cli -- user create <姓名> <手机号>
+    npm run cli -- user switch <姓名>
+    npm run cli -- user set-password <姓名> <密码>
+    npm run cli -- user list
+    npm run cli -- user current
+    npm run cli -- user delete <姓名>
+
+  注意: CLI 创建的用户默认无密码，需要 set-password 后才能在 Web 登录
+
+五、推荐学习路径
+────────────────────────────────────────────────────────────
+
+  零基础 → 点击导航栏 "🚀 一个月速成"，按天学习
+  有基础 → npm run cli -- quiz <主题> 自测 → 薄弱处看课程
+  考证   → 导航栏 "证书指南" 查看考证路线
+
+六、常见操作场景
+────────────────────────────────────────────────────────────
+
+  场景1: 今天学了 Linux
+    npm run cli -- start "Linux命令行"
+
+  场景2: 测试网络知识
+    npm run cli -- quiz networking
+
+  场景3: 多人共用
+    每人注册自己的账户，右上角切换，进度完全独立
+
+  场景4: 分享给朋友
+    确保 .env 和 data/ 已被 gitignore
+    压缩整个文件夹或 git push 即可
+
+七、配置与定制
+────────────────────────────────────────────────────────────
+
+  config.json:
+    "dataDir": "./data"        数据存项目内
+    "dataDir": "~/.it-trainer" 数据存用户主目录
+
+  添加 API 密钥（未来功能）:
+    复制 .env.example 为 .env，填入密钥
+
+================================================================
