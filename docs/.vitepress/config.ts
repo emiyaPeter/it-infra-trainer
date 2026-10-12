@@ -50,6 +50,7 @@ export default defineConfig({
           text: 'AI 辅助编程',
           items: [
             { text: '概述', link: '/courses/ai-programming/' },
+            { text: '00 - 零基础起步：第一次 AI 对话', link: '/courses/ai-programming/00-getting-started' },
             { text: '01 - AI 编程基础与工具版图', link: '/courses/ai-programming/01-ai-coding-basics' },
             { text: '02 - 提示词工程实战', link: '/courses/ai-programming/02-prompt-engineering' },
             { text: '03 - AI 终端代理工作流', link: '/courses/ai-programming/03-agent-workflow' },
