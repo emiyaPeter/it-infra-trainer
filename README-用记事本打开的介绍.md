@@ -52,15 +52,18 @@ npm run cli -- env-check # 检查环境
 
 
 cd it-infra-trainer                                （比如，我的电脑是把整个文件放到c盘桌面的test文件夹里面，那就是cd C:\Users\孙清渺\Desktop\test\it-infra-trainer）
-npm run docs:dev
+npm run dev
 
 
-启动后会看到：
+启动后会先看到服务就绪提示，然后**自动打开浏览器**：
 
 ```
-➜  Local:   http://localhost:5173/         ← 👈 推荐用这个
-➜  Network: http://10.105.12.220:5173/     ← 你的局域网 IP（每台电脑不同）
+  📚 课程文档: http://localhost:5173/
+  ➜  Local:   http://localhost:5173/         ← 本机访问
+  ➜  Network: http://10.105.12.220:5173/     ← 局域网地址（每台电脑不同）
 ```
+
+> 💡 `npm run docs:dev` 与 `npm run dev` 等效，只是不自动打开浏览器。也可以直接双击项目里的「启动学习助手.bat」。
 
 ### 本机访问
 
@@ -212,7 +215,10 @@ A: 能。两种方式：(1) `npm run docs:dev` + `http://localhost:5173/` 断网
 A: 能。手机和电脑连同一个 WiFi，手机浏览器打开终端显示的 Network 地址（如 `http://10.105.12.220:5173/`）即可。注册登录功能在局域网 IP 下也能正常使用。
 
 **Q: 学习进度保存在哪？会丢吗？**
-A: 保存在浏览器 `localStorage` 中（电脑本地存储）。同一个浏览器不会丢。换了浏览器或清理了浏览器数据需要重新注册。
+A: 分两处：Web 端（网页上注册的账户和进度）保存在浏览器 `localStorage` 中，同一个浏览器不会丢，换浏览器或清理浏览器数据需要重新注册；CLI 命令行的进度和成绩保存在项目 `data/data.db`（SQLite 数据库），备份这个文件即可。两套数据相互独立。
+
+**Q: Web 注册/登录需要额外的认证服务吗？**
+A: 不需要。v2.2 起网页账户完全存于浏览器本地，`npm run dev`、`npm run docs:dev`、甚至纯静态的 `npm run docs:static` 模式下都可以注册、登录、切换账户。
 
 ---
 

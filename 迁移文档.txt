@@ -1,18 +1,22 @@
 ================================================================
    IT 基础设施工程师培训助手 — 迁移文档
-   版本: 2.1 | 更新: 2026-07-21
+   版本: 2.2 | 更新: 2026-10-12
 ================================================================
 
 一、项目概述
 ────────────────────────────────────────────────────────────
 IT Infra Trainer 是一个离线优先的 IT 基础设施培训系统，包含：
 
-  组件              技术                        端口
+  组件              技术                          端口
   ─────────────────────────────────────────────────────
-  Web 文档网站       VitePress + Vue 3           5173
-  认证 API 服务      Express + bcrypt             3456
-  CLI 命令行工具     commander + inquirer         —
-  数据库             SQLite (better-sqlite3)      —
+  Web 文档网站       VitePress + Vue 3             5173
+  认证 API 服务      Express + bcrypt（可选，      3456
+                    默认不启动，仅排查历史数据用）
+  CLI 命令行工具     commander + inquirer           —
+  数据库             SQLite (better-sqlite3)        —
+
+  v2.2 起网页端账户完全存于浏览器 localStorage，
+  默认启动只需要 Web 文档网站一个进程。
 
 二、快速迁移（新机器部署）
 ────────────────────────────────────────────────────────────
@@ -33,7 +37,7 @@ IT Infra Trainer 是一个离线优先的 IT 基础设施培训系统，包含�
   npm run init-db
 
 步骤 5: 启动
-  npm run dev          ← 一键启动（认证 + 网站）
+  npm run dev          ← 一键启动，就绪后自动打开浏览器
   浏览器打开 http://localhost:5173
 
 步骤 6 (可选): 迁移旧数据
@@ -43,16 +47,29 @@ IT Infra Trainer 是一个离线优先的 IT 基础设施培训系统，包含�
 ────────────────────────────────────────────────────────────
 
   data/
-  ├── data.db               SQLite 数据库（用户、进度、测验记录）
-  ├── active-user.json      当前活跃用户桥接文件
-  └── users.json            用户列表（不含密码）
+  ├── data.db               SQLite 数据库（CLI 用户、进度、测验记录）
+  ├── active-user.json      当前活跃用户桥接文件（仅本地）
+  └── users.json            用户列表导出（仅本地，可选生成）
 
-  docs/public/data/         Web 端静态数据副本
+  注意: v2.2 起用户数据不再复制到 docs/public/data（隐私保护）。
   config.json               项目配置文件（dataDir 路径）
   .env                      密钥文件（gitignored，不随项目分发）
 
-四、版本变化 (v1 → v2.1)
+四、版本变化 (v1 → v2.2)
 ────────────────────────────────────────────────────────────
+
+  v2.2 变化:
+    + 架构简化: npm run dev 不再启动认证服务（Web 端账户已内置
+      于浏览器本地，离线可用，静态模式同样支持注册登录）
+    + 启动体验: 服务就绪后才自动打开浏览器（消除旧版固定等 2 秒
+      的竞态）；关闭窗口可靠回收子进程
+    + 隐私保护: 用户数据（姓名/手机号）不再发布到 docs/public/data
+    + 跨平台修复: 作业/实验的实操检查在 Windows 上自动通过 WSL
+      执行（原先硬编码 /bin/bash 会全部失败）
+    + 修复: 启动器检查的数据库文件名错误（it-trainer.db → data.db）
+    + 安全: Web 端密码哈希升级为多轮迭代 v2 格式（旧账户登录时
+      自动迁移，无感知）；仪表盘移除免密切换，统一走右上角验证密码
+    + 移除: config.json 中失效的 $schema 引用
 
   v2.1 新增:
     + Web 注册/登录/切换（密码认证）
@@ -90,11 +107,13 @@ A: 1) 确认 Node.js >=18  2) npm install 重新安装依赖
    3) 如果 better-sqlite3 编译失败，安装 Visual Studio Build Tools
 
 Q: Web 端看不到注册/登录按钮？
-A: 必须用 npm run dev 启动（不是 npm run docs:dev）
-   这会同时启动认证 API (3456) 和 Web (5173)
+A: 任何启动方式（npm run dev / docs:dev / docs:static）都有
+   注册登录功能，右上角操作。账户存于浏览器本地，无需后端。
 
 Q: 老用户（CLI创建）无法Web登录？
-A: 运行 npm run cli -- user set-password <用户名> <密码>
+A: CLI 用户与 Web 用户是两套独立数据。Web 端请直接注册账户；
+   CLI 端继续用 user switch 切换。旧认证服务（npm run auth）
+   仅用于排查 v2.1 时代的历史数据。
 
 Q: 数据库如何备份？
 A: 直接复制 data/data.db 文件即可
