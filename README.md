@@ -46,9 +46,9 @@ graph LR
 
 ## 在线体验
 
-部署后此处放访问地址（见 [DEPLOY.md](DEPLOY.md)，推送 GitHub 后自动发布）。
+**👉 https://emiyapeter.github.io/it-infra-trainer/**
 
-打开后点击仪表盘「载入演示数据」即可看到带进度的完整效果，无需注册。
+打开后点击首页仪表盘「一键载入演示数据」即可看到带进度的完整效果，无需注册。（本地部署与离线用法见 [DEPLOY.md](DEPLOY.md)）
 
 ## 快速开始（本地）
 
