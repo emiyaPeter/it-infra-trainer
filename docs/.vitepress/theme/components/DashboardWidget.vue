@@ -20,6 +20,9 @@
 
       <div v-else-if="!loadingUser && !currentUserName" class="dw-user-create-hint">
         <p>点击右上角「注册」创建你的学习账户</p>
+        <button class="dw-btn dw-btn-reset dw-demo-btn" @click="loadDemoData">
+          🧪 一键载入演示数据（免注册体验）
+        </button>
       </div>
     </div>
 
@@ -213,6 +216,57 @@ function refreshAll() {
 }
 
 // ============================================================
+// 演示数据：为评估者/新访客一键生成带进度的演示账户（免注册）
+// ============================================================
+const DEMO_CHAPTERS = [
+  'courses/networking/01-hardware-basics.md',
+  'courses/networking/02-osi-model.md',
+  'courses/networking/03-tcp-ip.md',
+  'courses/networking/04-subnetting.md',
+  'courses/linux/01-command-line.md',
+  'courses/linux/02-file-permissions.md',
+  'courses/linux/03-users-groups.md',
+  'courses/docker/01-container-concepts.md',
+  'courses/docker/02-docker-basics.md',
+  'courses/security/01-security-concepts.md',
+  'courses/security/02-network-security.md',
+  'courses/security/03-system-hardening.md',
+]
+
+function loadDemoData() {
+  const users = loadUsers()
+  if (users.some(u => u.name === '演示用户')) {
+    // 已存在则直接切换过去
+    const demo = users.find(u => u.name === '演示用户')
+    localStorage.setItem(ACTIVE_USER_KEY, String(demo.id))
+  } else {
+    const maxId = users.reduce((max, u) => Math.max(max, u.id || 0), 0)
+    const demo = {
+      id: maxId + 1,
+      name: '演示用户',
+      phone: '13800000000',
+      password_hash: '',   // 空 = 首次登录可设密码（AuthWidget 行为）
+      created_at: new Date().toISOString(),
+    }
+    users.push(demo)
+    saveUsers(users)
+    localStorage.setItem(ACTIVE_USER_KEY, String(demo.id))
+
+    // 预置 12 章完成进度，仪表盘即刻有真实读数
+    const now = new Date().toISOString()
+    const progress = { pages: {} }
+    for (const slug of DEMO_CHAPTERS) {
+      progress.pages[slug] = { done: true, doneAt: now }
+    }
+    localStorage.setItem('it-trainer-progress-' + demo.id, JSON.stringify(progress))
+  }
+
+  refreshAll()
+  window.dispatchEvent(new CustomEvent('it-trainer:user-changed'))
+  dataMsg.value = '演示账户已就绪（12 章进度已预置）。正式使用请注册自己的账户。'
+}
+
+// ============================================================
 // 学习数据导出 / 导入（换浏览器、换电脑迁移用）
 // ============================================================
 const dataMsg = ref('')
@@ -395,6 +449,10 @@ onUnmounted(() => {
 
 .dw-user-create-hint p {
   margin: 0;
+}
+
+.dw-demo-btn {
+  margin-top: 10px;
 }
 
 .dashboard-widget {

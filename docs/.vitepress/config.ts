@@ -4,7 +4,8 @@ export default defineConfig({
   title: 'IT 基础设施培训助手',
   description: '零基础到3年经验 — IT基础设施工程师自学系统',
   lang: 'zh-CN',
-  base: '/',
+  // GitHub Pages 项目站部署在子路径（/仓库名/）下；本地开发与根域名部署保持 '/'
+  base: (process.env.BASE_PATH || '/'),
   lastUpdated: true,
   cleanUrls: true,
   ignoreDeadLinks: true,
