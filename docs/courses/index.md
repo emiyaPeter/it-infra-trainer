@@ -47,10 +47,22 @@
 ## 🤖 AI 辅助编程
 → [AI 编程课程](./ai-programming/) — 第 0 章零基础起步 + 9 章三篇：方法基础 → 独立交付（选题/打磨）→ 求职实战（简历/面试）**✅ 已上线**
 
+## 🐳 Kubernetes 入门
+→ [Kubernetes 课程](./kubernetes/) — 4 章：核心概念 → minikube 实操 → 滚动发布 → 排障 **✅ 已上线**
+
+## 🏗 Terraform 与 IaC
+→ [Terraform 课程](./terraform/) — 4 章：IaC 思维 → HCL 实操 → 状态管理 → 模块化 **✅ 已上线**
+
+## 🐧 Linux 进阶
+→ [Linux 进阶课程](./advanced-linux/) — 4 章：性能分析 → 进程调试/OOM → journald → 安全加固 **✅ 已上线**
+
+## 🌐 网络进阶
+→ [网络进阶课程](./advanced-networking/) — 4 章：路由/VLAN → 防火墙 → WireGuard → tcpdump **✅ 已上线**
+
 ---
 
 ::: tip 当前进度
-**13 大模块共 62 章已上线！** 覆盖 IT 基础设施工程师核心技能树 + AI 协作技能。新增：Windows Server、灾备与高可用、AI 辅助编程（零基础→求职级）。
+**17 大模块共 78 章已上线！** 覆盖 IT 基础设施工程师核心技能树 + 进阶实战 + AI 协作技能。课程板块已全部充实，无空白预留。
 
 推荐新手从 **[一个月速成指南](./fast-track/)** 开始，30 天打牢基础。
 进阶路线：网络 → Linux → 安全 → 虚拟化 → 容器 → 自动化 → 监控 → 云计算

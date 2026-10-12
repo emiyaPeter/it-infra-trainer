@@ -45,6 +45,54 @@ export default defineConfig({
           ],
         },
       ],
+      '/courses/kubernetes/': [
+        {
+          text: 'Kubernetes 入门',
+          items: [
+            { text: '概述', link: '/courses/kubernetes/' },
+            { text: '01 - 为什么需要 K8s', link: '/courses/kubernetes/01-k8s-concepts' },
+            { text: '02 - minikube 快速上手', link: '/courses/kubernetes/02-minikube-quickstart' },
+            { text: '03 - 核心资源与滚动发布', link: '/courses/kubernetes/03-core-resources' },
+            { text: '04 - 运维基础与排障', link: '/courses/kubernetes/04-ops-basics' },
+          ],
+        },
+      ],
+      '/courses/terraform/': [
+        {
+          text: 'Terraform 与 IaC',
+          items: [
+            { text: '概述', link: '/courses/terraform/' },
+            { text: '01 - IaC 思维与定位', link: '/courses/terraform/01-iac-concepts' },
+            { text: '02 - HCL 与第一次 apply', link: '/courses/terraform/02-hcl-basics' },
+            { text: '03 - 状态管理与变量', link: '/courses/terraform/03-state-vars' },
+            { text: '04 - 模块化与工程实践', link: '/courses/terraform/04-modules-practice' },
+          ],
+        },
+      ],
+      '/courses/advanced-linux/': [
+        {
+          text: 'Linux 进阶',
+          items: [
+            { text: '概述', link: '/courses/advanced-linux/' },
+            { text: '01 - 性能分析入门', link: '/courses/advanced-linux/01-performance' },
+            { text: '02 - 进程调试与 OOM 取证', link: '/courses/advanced-linux/02-process-debug' },
+            { text: '03 - journald 与日志体系', link: '/courses/advanced-linux/03-journald-logs' },
+            { text: '04 - 安全加固清单', link: '/courses/advanced-linux/04-hardening' },
+          ],
+        },
+      ],
+      '/courses/advanced-networking/': [
+        {
+          text: '网络进阶',
+          items: [
+            { text: '概述', link: '/courses/advanced-networking/' },
+            { text: '01 - 路由与 VLAN', link: '/courses/advanced-networking/01-routing-vlan' },
+            { text: '02 - Linux 防火墙', link: '/courses/advanced-networking/02-firewall' },
+            { text: '03 - WireGuard 组网', link: '/courses/advanced-networking/03-wireguard' },
+            { text: '04 - tcpdump 抓包分析', link: '/courses/advanced-networking/04-packet-analysis' },
+          ],
+        },
+      ],
       '/courses/ai-programming/': [
         {
           text: 'AI 辅助编程',

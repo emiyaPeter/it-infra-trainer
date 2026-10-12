@@ -16,6 +16,8 @@
 - Docker 容器作为 Ansible 管理目标
 - Terraform 使用本地 Docker Provider 练习
 
+📖 **配套课程**：[Ansible / Terraform 基础（4章）](/courses/ansible/) · [Terraform 与 IaC 进阶（4章）](/courses/terraform/)
+
 ## 里程碑
 
 编写 Ansible Playbook 一键部署 LAMP 环境到 3 台 Docker 容器。

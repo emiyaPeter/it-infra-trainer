@@ -19,6 +19,8 @@
 - **Docker Desktop** (WSL2 backend) — 日常开发
 - **Minikube** 或 **K3s** — Kubernetes 本地实验
 
+📖 **配套课程**：[Docker 容器（4章）](/courses/docker/) · [Kubernetes 入门（4章）](/courses/kubernetes/)
+
 ## 里程碑
 
 部署一个 3 层应用：Nginx (前端) → Flask/Node.js (API) → PostgreSQL (数据库)，全部容器化。
