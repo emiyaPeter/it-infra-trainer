@@ -56,25 +56,34 @@ async function waitForServer(totalTimeoutMs = 60000) {
 }
 
 function openBrowser() {
-  let child;
-  if (process.platform === 'win32') {
-    child = spawn('cmd.exe', ['/c', 'start', '""', URL], { detached: true, stdio: 'ignore', windowsHide: true });
-  } else if (process.platform === 'darwin') {
-    child = spawn('open', [URL], { detached: true, stdio: 'ignore' });
-  } else {
-    child = spawn('xdg-open', [URL], { detached: true, stdio: 'ignore' });
-  }
-  if (child) child.unref();
+  // 防崩保护：打不开浏览器（如环境限制）不应影响服务本身
+  try {
+    let child;
+    if (process.platform === 'win32') {
+      child = spawn('cmd.exe', ['/c', 'start', '""', URL], { detached: true, stdio: 'ignore', windowsHide: true });
+    } else if (process.platform === 'darwin') {
+      child = spawn('open', [URL], { detached: true, stdio: 'ignore' });
+    } else {
+      child = spawn('xdg-open', [URL], { detached: true, stdio: 'ignore' });
+    }
+    if (child) {
+      child.on('error', () => {});
+      child.unref();
+    }
+  } catch { /* 忽略：浏览器打开失败不影响服务 */ }
 }
 
 docsServer.on('spawn', () => {
   waitForServer().then((ready) => {
-    if (!ready || docsServer.exitCode !== null) return;
+    if (docsServer.exitCode !== null) return;
     console.log('');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`  📚 课程文档: ${URL}`);
     console.log('     （手机/平板：连同一 WiFi，用终端显示的 Network 地址访问）');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    if (!ready) {
+      console.log('  ⚠️ 60 秒内未确认就绪，可手动访问上述地址重试。');
+    }
     if (!NO_OPEN && !opened) {
       opened = true;
       openBrowser();
