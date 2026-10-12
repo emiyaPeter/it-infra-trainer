@@ -118,14 +118,15 @@ function saveActiveUserId(id) {
   localStorage.setItem(ACTIVE_USER_KEY, String(id))
 }
 
-// 密码哈希 — 优先使用浏览器原生 Web Crypto API，不可用时降级到纯 JS SHA-256
-// 两种方式结果完全一致，互不依赖外部网络
-async function hashPassword(password) {
-  const input = password + 'it-trainer-salt'
-  return await sha256(input)
-}
+// ============================================================
+// 密码哈希（v2：多轮迭代 + 按用户区分盐）
+// - 优先使用浏览器原生 Web Crypto API，不可用时降级到纯 JS SHA-256
+// - v2 存储格式: "v2$<轮数>$<hex>"；登录时自动把旧格式（单轮+固定盐）升级
+// ============================================================
+const HASH_ROUNDS = 2000
+const LEGACY_SALT = 'it-trainer-salt'
 
-async function sha256(message) {
+async function sha256Hex(message) {
   // 优先尝试浏览器原生 API（硬件加速，仅安全上下文可用）
   if (typeof crypto !== 'undefined' && crypto.subtle) {
     try {
@@ -198,6 +199,45 @@ function pureSha256(message) {
   }
 
   return H.map(x => x.toString(16).padStart(8, '0')).join('')
+}
+
+// v2 哈希：多轮迭代，userKey（用户 id）参与加盐，显著提高离线暴力破解成本
+async function hashPasswordV2(password, userKey) {
+  let digest = await sha256Hex('it-trainer-v2:' + userKey + ':' + password)
+  for (let i = 1; i < HASH_ROUNDS; i++) digest = await sha256Hex(digest)
+  return 'v2$' + HASH_ROUNDS + '$' + digest
+}
+
+// 旧格式哈希（v2.1 及以前）：单轮 SHA-256 + 固定盐
+async function hashPasswordLegacy(password) {
+  return sha256Hex(password + LEGACY_SALT)
+}
+
+/**
+ * 校验用户密码；旧格式命中后自动升级为 v2（透明迁移，用户无感知）
+ * @returns 匹配则返回该用户对象，否则返回 null
+ */
+async function verifyAndUpgrade(users, user, password) {
+  const stored = user.password_hash
+  if (stored && stored.startsWith('v2$')) {
+    const parts = stored.split('$')
+    const rounds = parseInt(parts[1], 10) || HASH_ROUNDS
+    const expected = parts[2]
+    let digest = await sha256Hex('it-trainer-v2:' + user.id + ':' + password)
+    for (let i = 1; i < rounds; i++) digest = await sha256Hex(digest)
+    return digest === expected ? user : null
+  }
+  if (stored && stored === await hashPasswordLegacy(password)) {
+    user.password_hash = await hashPasswordV2(password, user.id)
+    saveUsers(users)
+    return user
+  }
+  return null
+}
+
+// 用户变更后通知页面内其他组件（如首页仪表盘）立即刷新
+function broadcastUserChange() {
+  window.dispatchEvent(new CustomEvent('it-trainer:user-changed'))
 }
 
 // ============================================================
@@ -287,13 +327,12 @@ async function doRegister() {
       return
     }
 
-    const passwordHash = await hashPassword(password)
     const maxId = users.reduce((max, u) => Math.max(max, u.id || 0), 0)
     const newUser = {
       id: maxId + 1,
       name: name.trim(),
       phone: phone.trim(),
-      password_hash: passwordHash,
+      password_hash: await hashPasswordV2(password, maxId + 1),
       created_at: new Date().toISOString(),
     }
 
@@ -303,6 +342,7 @@ async function doRegister() {
 
     currentUser.value = { id: String(newUser.id), name: newUser.name, phone: newUser.phone }
     fetchUsers()
+    broadcastUserChange()
     successMsg.value = '注册成功！已自动登录。'
     regForm.value = { name: '', phone: '', password: '', confirmPassword: '' }
     setTimeout(() => { showRegisterModal.value = false; clearMessages() }, 1500)
@@ -333,20 +373,17 @@ async function doLogin() {
       return
     }
 
-    const passwordHash = await hashPassword(password)
     let matchedUser = null
     for (const u of matched) {
       if (!u.password_hash) {
-        // 老用户无密码，为它设置密码
-        u.password_hash = passwordHash
+        // 老用户无密码，首次登录即设定密码（v2 格式）
+        u.password_hash = await hashPasswordV2(password, u.id)
         saveUsers(users)
         matchedUser = u
         break
       }
-      if (u.password_hash === passwordHash) {
-        matchedUser = u
-        break
-      }
+      matchedUser = await verifyAndUpgrade(users, u, password)
+      if (matchedUser) break
     }
 
     if (!matchedUser) {
@@ -357,6 +394,7 @@ async function doLogin() {
 
     saveActiveUserId(matchedUser.id)
     currentUser.value = { id: String(matchedUser.id), name: matchedUser.name, phone: matchedUser.phone }
+    broadcastUserChange()
     successMsg.value = '登录成功'
     loginForm.value = { name: '', password: '' }
     setTimeout(() => { showLoginModal.value = false; clearMessages() }, 1000)
@@ -397,19 +435,22 @@ async function doSwitch() {
       return
     }
 
-    const passwordHash = await hashPassword(password)
     if (!fullUser.password_hash) {
-      // 老用户无密码 → 自动设置密码
-      fullUser.password_hash = passwordHash
+      // 老用户无密码 → 首次切换即设定密码（v2 格式）
+      fullUser.password_hash = await hashPasswordV2(password, fullUser.id)
       saveUsers(users)
-    } else if (fullUser.password_hash !== passwordHash) {
-      errorMsg.value = '密码错误'
-      submitting.value = false
-      return
+    } else {
+      const verified = await verifyAndUpgrade(users, fullUser, password)
+      if (!verified) {
+        errorMsg.value = '密码错误'
+        submitting.value = false
+        return
+      }
     }
 
     saveActiveUserId(userId)
     currentUser.value = { id: String(fullUser.id), name: fullUser.name, phone: fullUser.phone }
+    broadcastUserChange()
     successMsg.value = `已切换到 ${fullUser.name}`
     switchForm.value = { userId: '', password: '' }
     setTimeout(() => { showSwitchModal.value = false; clearMessages() }, 1000)

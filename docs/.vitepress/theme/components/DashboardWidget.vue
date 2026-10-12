@@ -14,15 +14,9 @@
         <span v-if="userList.length > 1" class="dw-user-count">(共 {{ userList.length }} 位)</span>
       </div>
 
-      <!-- User Switcher Dropdown -->
-      <div v-if="userList.length > 1" class="dw-user-switcher">
-        <select v-model="selectedUserId" @change="doSwitchUser" class="dw-user-select">
-          <option value="" disabled>— 切换用户 —</option>
-          <option v-for="u in displayUsers" :key="u.id" :value="u.id">
-            {{ u.name }}{{ u.phone !== '00000000000' ? ' (' + u.phone + ')' : '' }}
-          </option>
-        </select>
-        <span v-if="switchMsg" class="dw-switch-msg">{{ switchMsg }}</span>
+      <!-- User Switcher Hint -->
+      <div v-if="userList.length > 1" class="dw-user-create-hint">
+        <p>切换账户请用右上角「切换账户」（需验证密码）</p>
       </div>
 
       <div v-else-if="!loadingUser && !currentUserName" class="dw-user-create-hint">
@@ -86,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 // ============================================================
 // localStorage 存储层
@@ -103,10 +97,6 @@ function loadUsers() {
 
 function loadActiveUserId() {
   return localStorage.getItem(ACTIVE_USER_KEY) || ''
-}
-
-function saveActiveUserId(id) {
-  localStorage.setItem(ACTIVE_USER_KEY, String(id))
 }
 
 function loadProgressForUser(userId) {
@@ -172,30 +162,11 @@ function resetTimer() {
 }
 
 // ============================================================
-// 用户管理（localStorage）
+// 用户管理（localStorage）— 切换账户统一走右上角 AuthWidget（需密码）
 // ============================================================
 const currentUserName = ref('')
 const loadingUser = ref(true)
 const userList = ref([])
-const selectedUserId = ref('')
-const switchMsg = ref('')
-
-const displayUsers = computed(() => {
-  return userList.value.filter(u => u.name !== 'default')
-})
-
-function doSwitchUser() {
-  switchMsg.value = ''
-  const user = userList.value.find(u => String(u.id) === selectedUserId.value)
-  if (!user) return
-
-  // 在纯离线模式下，直接切换（不校验密码 —— 仪表盘快速切换）
-  saveActiveUserId(user.id)
-  currentUserName.value = user.name
-  switchMsg.value = `已切换至 ${user.name}`
-  loadPhaseProgress()
-  setTimeout(() => { switchMsg.value = '' }, 2000)
-}
 
 function loadPhaseProgress() {
   const activeId = loadActiveUserId()
@@ -210,24 +181,28 @@ function loadPhaseProgress() {
   }
 }
 
-onMounted(() => {
-  // 加载用户列表
+function refreshAll() {
   const users = loadUsers()
   userList.value = users
 
   const activeId = loadActiveUserId()
-  if (activeId) {
-    const found = users.find(u => String(u.id) === String(activeId))
-    if (found && found.name !== 'default') {
-      currentUserName.value = found.name
-    }
-    selectedUserId.value = String(activeId)
-  }
+  const found = activeId
+    ? users.find(u => String(u.id) === String(activeId))
+    : null
+  currentUserName.value = found && found.name !== 'default' ? found.name : ''
 
-  // 加载进度
   loadPhaseProgress()
+}
 
+onMounted(() => {
+  refreshAll()
+  // 右上角注册/登录/切换成功后立即刷新仪表盘（无需手动刷新页面）
+  window.addEventListener('it-trainer:user-changed', refreshAll)
   loadingUser.value = false
+})
+
+onUnmounted(() => {
+  window.removeEventListener('it-trainer:user-changed', refreshAll)
 })
 </script>
 
@@ -267,35 +242,6 @@ onMounted(() => {
 .dw-user-count {
   font-size: 12px;
   color: var(--vp-c-text-3);
-}
-
-.dw-user-switcher {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.dw-user-select {
-  padding: 6px 10px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 6px;
-  background: var(--vp-c-bg);
-  color: var(--vp-c-text-1);
-  font-size: 13px;
-  cursor: pointer;
-  min-width: 180px;
-}
-
-.dw-user-select:focus {
-  border-color: var(--vp-c-brand);
-  outline: none;
-}
-
-.dw-switch-msg {
-  font-size: 12px;
-  color: #10b981;
-  font-weight: 500;
 }
 
 .dw-user-create-hint {
