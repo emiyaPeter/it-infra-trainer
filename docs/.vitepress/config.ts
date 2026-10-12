@@ -45,6 +45,19 @@ export default defineConfig({
           ],
         },
       ],
+      '/courses/ai-programming/': [
+        {
+          text: 'AI 辅助编程',
+          items: [
+            { text: '概述', link: '/courses/ai-programming/' },
+            { text: '01 - AI 编程基础与工具版图', link: '/courses/ai-programming/01-ai-coding-basics' },
+            { text: '02 - 提示词工程实战', link: '/courses/ai-programming/02-prompt-engineering' },
+            { text: '03 - AI 终端代理工作流', link: '/courses/ai-programming/03-agent-workflow' },
+            { text: '04 - 带着 AI 做完整项目', link: '/courses/ai-programming/04-ai-project-practice' },
+            { text: '05 - 安全、质量与验证', link: '/courses/ai-programming/05-ai-safety-quality' },
+          ],
+        },
+      ],
       '/courses/windows-server/': [
         {
           text: 'Windows Server 管理',
