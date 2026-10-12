@@ -45,8 +45,32 @@ export default defineConfig({
           ],
         },
       ],
-      '/courses/networking/': [
+      '/courses/windows-server/': [
         {
+          text: 'Windows Server 管理',
+          items: [
+            { text: '概述', link: '/courses/windows-server/' },
+            { text: '01 - 安装与初始配置', link: '/courses/windows-server/01-installation' },
+            { text: '02 - Active Directory 域服务', link: '/courses/windows-server/02-ad-domain' },
+            { text: '03 - AD 用户与组管理', link: '/courses/windows-server/03-users-groups' },
+            { text: '04 - 组策略 GPO', link: '/courses/windows-server/04-group-policy' },
+            { text: '05 - DNS、DHCP 与文件服务', link: '/courses/windows-server/05-server-services' },
+          ],
+        },
+      ],
+      '/courses/dr-backup/': [
+        {
+          text: '灾备与高可用',
+          items: [
+            { text: '概述', link: '/courses/dr-backup/' },
+            { text: '01 - 备份策略与实战', link: '/courses/dr-backup/01-backup-strategy' },
+            { text: '02 - RAID 与单机冗余', link: '/courses/dr-backup/02-raid-ha' },
+            { text: '03 - 负载均衡与故障转移', link: '/courses/dr-backup/03-lb-failover' },
+            { text: '04 - 灾备规划与演练', link: '/courses/dr-backup/04-dr-plan' },
+          ],
+        },
+      ],
+      '/courses/networking/': [        {
           text: '网络基础',
           items: [
             { text: '概述', link: '/courses/networking/' },

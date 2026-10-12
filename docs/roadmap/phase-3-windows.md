@@ -17,6 +17,8 @@
 - PowerShell 自动化管理
 - 文件服务器与共享权限 (SMB/CIFS)
 
+📖 **配套课程**：[Windows Server 管理（5章）](/courses/windows-server/)
+
 ## 实验环境
 
 使用 **VirtualBox** + **Windows Server 2022 Evaluation**（180天免费），搭建至少 2 台 VM：

@@ -11,6 +11,8 @@
 - 高可用：Active-Passive/Active-Active、集群与仲裁
 - 灾备规划：DR 文档编写、演练流程
 
+📖 **配套课程**：[灾备与高可用（4章）](/courses/dr-backup/)
+
 ## 里程碑
 
 设计一份 3 层应用的完整 DR 方案文档，并在 Docker 环境中验证关键步骤。

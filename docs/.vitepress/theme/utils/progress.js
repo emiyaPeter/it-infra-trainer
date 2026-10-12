@@ -9,18 +9,18 @@ export const ACTIVE_USER_KEY = 'it-trainer-active-user-id'
 const PROGRESS_KEY_PREFIX = 'it-trainer-progress-'
 
 // 阶段目录：match 为 courses/ 下的类目目录名，chapters 为该类目章节页总数。
-// 新增课程章节后请同步更新 chapters（windows-server / dr-backup 尚无讲义，记 0）。
+// 新增课程章节后请同步更新 chapters（当前共 52 章：7+8+5+4+4+4+4+4+8+4）。
 export const PHASE_CATALOG = [
   { id: 1, label: '阶段1：基础入门', match: 'networking', chapters: 7 },
   { id: 2, label: '阶段2：Linux 管理', match: 'linux', chapters: 8 },
-  { id: 3, label: '阶段3：Windows Server', match: 'windows-server', chapters: 0 },
+  { id: 3, label: '阶段3：Windows Server', match: 'windows-server', chapters: 5 },
   { id: 4, label: '阶段4：虚拟化', match: 'virtualization', chapters: 4 },
   { id: 5, label: '阶段5：容器', match: 'docker', chapters: 4 },
   { id: 6, label: '阶段6：自动化', match: 'ansible', chapters: 4 },
   { id: 7, label: '阶段7：监控', match: 'monitoring', chapters: 4 },
   { id: 8, label: '阶段8：云计算', match: 'cloud', chapters: 4 },
   { id: 9, label: '阶段9：安全', match: 'security', chapters: 8 },
-  { id: 10, label: '阶段10：灾备', match: 'dr-backup', chapters: 0 },
+  { id: 10, label: '阶段10：灾备', match: 'dr-backup', chapters: 4 },
 ]
 
 /** relativePath 是否为课程章节页（courses/<类目>/NN-xxx.md） */
