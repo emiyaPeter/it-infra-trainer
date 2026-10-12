@@ -156,7 +156,7 @@ export async function runLab(name, options) {
     console.log('');
 
     // Wait for user to perform the step
-    await inquirer.prompt([
+    const { done: stepAnswer } = await inquirer.prompt([
       {
         type: 'input',
         name: 'done',
@@ -164,9 +164,11 @@ export async function runLab(name, options) {
       },
     ]);
 
-    // If user typed 's', skip this step
-    // Actually inquirer returns the answer - we'd need to handle it differently
-    // Simplified: just check
+    // 输入 s 跳过本步骤（不计入完成数，稍后可重做实验补上）
+    if (String(stepAnswer).trim().toLowerCase() === 's') {
+      console.log(chalk.gray('  ⏭ 已跳过本步骤。'));
+      continue;
+    }
 
     console.log(chalk.gray('  🔍 正在验证...'));
 

@@ -1,0 +1,61 @@
+{
+  "id": "networking-basics",
+  "title": "网络基础实验：本机网络环境探查",
+  "prerequisites": ["01-hardware-basics", "02-osi-model", "03-tcp-ip"],
+  "estimatedTime": 15,
+  "environment": {
+    "type": "wsl2",
+    "requirements": ["WSL2 Ubuntu"]
+  },
+  "steps": [
+    {
+      "id": "step-1",
+      "instruction": "## 步骤 1: 认识 hosts 文件\n\n打开 WSL2 终端（开始菜单 → Ubuntu），执行：\n\n```bash\ncat /etc/hosts\n```\n\n`/etc/hosts` 是本机静态域名解析表，优先级高于 DNS。观察里面 `localhost` 被解析到哪个地址。",
+      "check": {
+        "type": "file-exists",
+        "path": "/etc/hosts"
+      },
+      "hint": "/etc/hosts 是 Linux/Windows 通用的静态解析文件，无需创建，直接查看即可。"
+    },
+    {
+      "id": "step-2",
+      "instruction": "## 步骤 2: 查看回环接口\n\n```bash\nip -4 addr show lo\n```\n\n`lo` 是回环（loopback）接口，工作在网络层，永远指向本机。确认它的 IPv4 地址。",
+      "check": {
+        "type": "command-output",
+        "command": "ip -4 addr show lo",
+        "expected": "127.0.0.1"
+      },
+      "hint": "回环地址段是 127.0.0.0/8，其中 127.0.0.1 最常用，也称为 localhost。"
+    },
+    {
+      "id": "step-3",
+      "instruction": "## 步骤 3: 验证名称解析\n\n```bash\ngetent hosts localhost\n```\n\n`getent` 查询系统名称解析服务（nsswitch），验证 `localhost` 这个主机名能否被解析。",
+      "check": {
+        "type": "command-output",
+        "command": "getent hosts localhost",
+        "expected": "127.0.0.1"
+      },
+      "hint": "解析顺序由 /etc/nsswitch.conf 决定：先查本地文件（/etc/hosts），再查 DNS。"
+    },
+    {
+      "id": "step-4",
+      "instruction": "## 步骤 4: 测试回环连通性\n\n```bash\nping -c 1 127.0.0.1\n```\n\n`ping` 使用 ICMP 协议（网络层）。`-c 1` 表示只发一个包。观察是否收到应答。",
+      "check": {
+        "type": "command-output",
+        "command": "ping -c 1 127.0.0.1",
+        "expected": "1 received"
+      },
+      "hint": "如果 ping 127.0.0.1 都不通，说明本机 TCP/IP 协议栈异常；实际排障中这是第一检查点。"
+    },
+    {
+      "id": "step-5",
+      "instruction": "## 步骤 5: 查看本机 IP 地址\n\n```bash\nhostname -I\n```\n\n输出本机所有 IPv4/IPv6 地址（不含回环）。WSL2 会分配一个虚拟网卡地址（通常 172.x.x.x 段）。\n\n对照思考：这个地址和 Windows 宿主机的 IP（`ipconfig` 查看）为什么不一样？",
+      "check": {
+        "type": "regex-match",
+        "command": "hostname -I",
+        "pattern": "\\d+\\.\\d+\\.\\d+\\.\\d+"
+      },
+      "hint": "WSL2 使用 NAT 网络模式，拥有独立的虚拟网卡（eth0），所以与宿主机 IP 不同网段。"
+    }
+  ]
+}
