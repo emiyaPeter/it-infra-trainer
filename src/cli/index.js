@@ -19,7 +19,7 @@ const program = new Command();
 program
   .name('it-trainer')
   .description('IT 基础设施工程师培训助手 CLI')
-  .version('1.0.0');
+  .version('1.1.0');
 
 // --- env-check 命令 ---
 program

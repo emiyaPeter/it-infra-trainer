@@ -1,14 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 > nul
-title IT 基础设施培训助手（原版）
+title IT 基础设施培训助手
 
 cd /d "%~dp0"
 
 echo.
 echo ╔══════════════════════════════════════╗
-echo ║  🖥️  IT 基础设施工程师培训助手      ║
-echo ║  原版 · Node.js + VitePress         ║
+echo ║  🖥️  IT 基础设施工程师培训助手       ║
+echo ║  Node.js + VitePress · 离线可用      ║
 echo ╚══════════════════════════════════════╝
 echo.
 
@@ -35,27 +35,21 @@ if not exist "node_modules\" (
     )
 )
 
-:: 检查数据库是否初始化
-if not exist "data\it-trainer.db" (
+:: 检查数据库是否初始化（实际文件名为 data.db）
+if not exist "data\data.db" (
     echo   [提示] 正在初始化数据库...
-    node scripts/init-db.js
+    node scripts\init-db.js
 )
 
-echo   正在启动服务...
+echo   正在启动课程网站，就绪后自动打开浏览器...
+echo   （手机/平板：连同一 WiFi，用下方 Network 地址访问）
 echo.
-echo   🔐 认证服务: http://localhost:3456
-echo   📚 课程文档: http://localhost:5173
-echo.
-echo   ⚠️  关闭本窗口将停止所有服务
-echo ══════════════════════════════════════
+echo   ⚠️  关闭本窗口将停止服务
+echo ════════════════════════════════════════
 echo.
 
-:: 启动浏览器
-timeout /t 2 /nobreak > nul
-start "" "http://localhost:5173"
-
-:: 一键启动
-npm run dev
+:: 一键启动（内部含端口就绪检测，就绪后才打开浏览器）
+call npm run dev
 
 echo.
 echo   服务已停止。
