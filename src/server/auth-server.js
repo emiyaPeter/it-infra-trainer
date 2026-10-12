@@ -1,16 +1,18 @@
 // ============================================================
-// 认证 API 服务器 — 处理 Web 端注册/登录/切换
-// 启动: node src/server/auth-server.js
-// 默认端口: 3456
+// 认证 API 服务器 — 可选的历史组件（v2.2 起不在默认启动路径中）
+//
+// ⚠️ 现状说明：Web 端（AuthWidget.vue）自纯离线改造后只读写浏览器
+// localStorage，不再调用本服务的任何接口。默认启动（npm run dev /
+// 启动学习助手.bat）已不再拉起本服务。
+//
+// 保留此文件的目的：SQLite 侧仍保留 v2.1 时代的用户数据，如需排查或
+// 迁移历史数据，可手动运行: npm run auth
 // ============================================================
 
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
-import { getDb, getAllUsers, getActiveUserId, setActiveUser, exportUsersToJson } from '../cli/utils/db.js';
-import { getConfig } from '../cli/utils/config.js';
-import path from 'node:path';
-import fs from 'node:fs';
+import { getDb, getActiveUserId, setActiveUser } from '../cli/utils/db.js';
 
 const app = express();
 const PORT = process.env.AUTH_PORT || 3456;
@@ -33,31 +35,6 @@ function ensurePasswordColumn() {
   } catch (e) {
     console.error('[auth-server] 迁移失败:', e.message);
   }
-}
-
-// ============================================================
-// 同步桥接文件到 public/data/
-// ============================================================
-function syncBridgeFiles() {
-  const config = getConfig();
-  const publicDir = path.join(config.projectRoot, 'docs', 'public', 'data');
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
-  }
-
-  // active-user.json
-  const bridgePath = config.currentUserFile;
-  if (fs.existsSync(bridgePath)) {
-    fs.copyFileSync(bridgePath, path.join(publicDir, 'active-user.json'));
-  }
-
-  // users.json（不含密码哈希）
-  const allUsers = getDb().prepare('SELECT id, name, phone, created_at, last_active_at FROM users ORDER BY name').all();
-  const activeId = getActiveUserId();
-  fs.writeFileSync(path.join(publicDir, 'users.json'), JSON.stringify({
-    activeUserId: activeId,
-    users: allUsers,
-  }, null, 2));
 }
 
 // ============================================================
@@ -98,7 +75,6 @@ app.post('/api/register', async (req, res) => {
     const newId = String(info.lastInsertRowid);
 
     setActiveUser(newId);
-    syncBridgeFiles();
 
     res.json({ success: true, id: newId, name, message: '注册成功！已自动登录。' });
   } catch (e) {
@@ -143,7 +119,6 @@ app.post('/api/login', async (req, res) => {
     }
 
     setActiveUser(matchedUser.id);
-    syncBridgeFiles();
 
     res.json({ success: true, id: String(matchedUser.id), name: matchedUser.name, phone: matchedUser.phone, message: '登录成功' });
   } catch (e) {
@@ -188,7 +163,6 @@ app.get('/api/health', (req, res) => {
 // 启动
 // ============================================================
 ensurePasswordColumn();
-syncBridgeFiles();
 
 app.listen(PORT, () => {
   console.log(`🔐 认证服务已启动: http://localhost:${PORT}`);

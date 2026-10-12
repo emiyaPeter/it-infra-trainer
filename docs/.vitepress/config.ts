@@ -11,11 +11,8 @@ export default defineConfig({
 
   vite: {
     server: {
+      // 监听 0.0.0.0：局域网内手机/平板可通过 Network 地址访问
       host: '0.0.0.0',
-      fs: {
-        // 允许 dev server 访问项目根目录的 data/ 桥接文件
-        allow: ['..'],
-      },
     },
   },
 

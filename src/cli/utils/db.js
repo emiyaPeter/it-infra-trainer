@@ -333,7 +333,7 @@ function writeActiveUserBridgeFile(userId) {
     activeSince: new Date().toISOString(),
   }, null, 2);
 
-  // 写入 data/ 目录
+  // 写入 data/ 目录（仅本地，不同步到 docs/public —— 避免姓名/手机号被当作静态资源对外服务）
   const bridgeFile = config.currentUserFile;
   try {
     const dir = path.dirname(bridgeFile);
@@ -343,25 +343,6 @@ function writeActiveUserBridgeFile(userId) {
     fs.writeFileSync(bridgeFile, bridgeData);
   } catch (e) {
     console.warn(`[db] 无法写入桥接文件 ${bridgeFile}: ${e.message}`);
-  }
-
-  // 同步到 docs/public/data/ 供 Web 端读取
-  try {
-    const publicDir = path.join(config.projectRoot, 'docs', 'public', 'data');
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir, { recursive: true });
-    }
-    fs.writeFileSync(path.join(publicDir, 'active-user.json'), bridgeData);
-
-    // 同时导出完整用户列表
-    const allUsers = database.prepare('SELECT id, name, phone, created_at, last_active_at FROM users ORDER BY name').all();
-    const usersData = JSON.stringify({
-      activeUserId: getActiveUserId(),
-      users: allUsers,
-    }, null, 2);
-    fs.writeFileSync(path.join(publicDir, 'users.json'), usersData);
-  } catch (e) {
-    // 静默忽略
   }
 }
 
