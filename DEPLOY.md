@@ -10,7 +10,7 @@ winget install GitHub.cli
 gh auth login
 
 # 2. 在项目目录创建仓库并推送（--public 求职作品需要公开可访问）
-cd C:\Users\孙清渺\Desktop\test\it-infra-trainer
+cd <你的项目路径，例如 C:\Users\<用户名>\Desktop\test\it-infra-trainer>
 gh repo create it-infra-trainer --public --source=. --push
 
 # 3. 开启 Pages（来源选 GitHub Actions 工作流）

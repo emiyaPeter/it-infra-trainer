@@ -51,7 +51,7 @@ npm run cli -- env-check # 检查环境
 每次学习时，打开终端执行以下命令：
 
 
-cd it-infra-trainer                                （比如，我的电脑是把整个文件放到c盘桌面的test文件夹里面，那就是cd C:\Users\孙清渺\Desktop\test\it-infra-trainer）
+cd it-infra-trainer                                （把整个文件夹放到哪里就 cd 到哪里，例如 cd C:\Users\<用户名>\Desktop\test\it-infra-trainer）
 npm run dev
 
 
