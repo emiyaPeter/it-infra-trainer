@@ -5,10 +5,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { saveHomeworkResult } from '../utils/db.js';
+import { runBash, shq } from '../utils/bash.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HOMEWORK_DIR = path.join(__dirname, '..', '..', '..', 'homework');
@@ -37,60 +37,47 @@ function listHomework() {
 }
 
 function runPracticalCheck(check) {
-  try {
-    switch (check.type) {
-      case 'command-output': {
-        const result = execSync(check.command, {
-          encoding: 'utf-8', timeout: 15000,
-          stdio: ['ignore', 'pipe', 'pipe'],
-          shell: check.shell || '/bin/bash',
-        });
-        if (check.expected) {
-          return { passed: result.includes(check.expected), output: result.trim().slice(0, 200) };
-        }
-        if (check.pattern) {
-          return { passed: new RegExp(check.pattern, check.flags || '').test(result), output: result.trim().slice(0, 200) };
-        }
-        return { passed: result.trim().length > 0, output: result.trim().slice(0, 200) };
-      }
-      case 'file-exists': {
-        const p = check.path.replace('~', process.env.HOME || '/home/user');
-        try {
-          fs.accessSync(p);
-          return { passed: true, output: `文件存在: ${p}` };
-        } catch {
-          return { passed: false, output: `文件不存在: ${p}` };
-        }
-      }
-      case 'file-contains': {
-        const p = check.path.replace('~', process.env.HOME || '/home/user');
-        try {
-          const content = fs.readFileSync(p, 'utf-8');
-          return {
-            passed: content.includes(check.expected),
-            output: content.includes(check.expected) ? '内容匹配' : `文件中未找到: ${check.expected}`,
-          };
-        } catch {
-          return { passed: false, output: `无法读取文件: ${p}` };
-        }
-      }
-      case 'service-running': {
-        const result = execSync(`systemctl is-active ${check.service} 2>/dev/null || echo "inactive"`, {
-          encoding: 'utf-8', timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        return { passed: result.trim() === 'active', output: `服务 ${check.service}: ${result.trim()}` };
-      }
-      case 'port-open': {
-        const result = execSync(`ss -tlnp 2>/dev/null | grep ":${check.port}" || echo ""`, {
-          encoding: 'utf-8', timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        return { passed: result.trim().length > 0, output: result.trim() ? `端口 ${check.port} 在监听` : `端口 ${check.port} 未监听` };
-      }
-      default:
-        return { passed: false, output: `未知检查类型: ${check.type}` };
+  const clip = (s) => String(s || '').trim().slice(0, 200);
+
+  switch (check.type) {
+    case 'command-output': {
+      const r = runBash(check.command, { timeout: 15000, shell: check.shell });
+      if (!r.ok) return { passed: false, output: clip(r.output || r.error) };
+      if (check.expected) return { passed: r.output.includes(check.expected), output: clip(r.output) };
+      if (check.pattern) return { passed: new RegExp(check.pattern, check.flags || '').test(r.output), output: clip(r.output) };
+      return { passed: r.output.trim().length > 0, output: clip(r.output) };
     }
-  } catch (err) {
-    return { passed: false, output: err.message?.slice(0, 200) || '检查执行失败' };
+    case 'file-exists': {
+      // 路径赋值不加引号，让 bash 展开 ~（Windows 上自动在 WSL 内执行）
+      const r = runBash(`p=${check.path}; test -e "$p" && echo __IT_EXISTS__ || echo __IT_MISSING__`, { timeout: 5000 });
+      if (r.wslMissing) return { passed: false, output: r.error };
+      return {
+        passed: r.ok && r.output.includes('__IT_EXISTS__'),
+        output: r.output.includes('__IT_EXISTS__') ? `文件存在: ${check.path}` : `文件不存在: ${check.path}`,
+      };
+    }
+    case 'file-contains': {
+      const r = runBash(`p=${check.path}; grep -qF -- ${shq(check.expected)} "$p" && echo __IT_OK__ || echo __IT_MISS__`, { timeout: 5000 });
+      if (r.wslMissing) return { passed: false, output: r.error };
+      return {
+        passed: r.ok && r.output.includes('__IT_OK__'),
+        output: r.output.includes('__IT_OK__') ? '内容匹配' : `文件中未找到: ${check.expected}`,
+      };
+    }
+    case 'service-running': {
+      const r = runBash(`systemctl is-active ${shq(check.service)} 2>/dev/null || echo "inactive"`, { timeout: 10000 });
+      const state = r.ok ? r.output.trim() : 'inactive';
+      return { passed: r.ok && state === 'active', output: `服务 ${check.service}: ${state}` };
+    }
+    case 'port-open': {
+      const r = runBash(`ss -tlnp 2>/dev/null | grep ${shq(':' + check.port)} || echo ""`, { timeout: 10000 });
+      return {
+        passed: r.ok && r.output.trim().length > 0,
+        output: r.output.trim() ? `端口 ${check.port} 在监听` : `端口 ${check.port} 未监听`,
+      };
+    }
+    default:
+      return { passed: false, output: `未知检查类型: ${check.type}` };
   }
 }
 

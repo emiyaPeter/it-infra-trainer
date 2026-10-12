@@ -5,10 +5,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { saveLabCompletion } from '../utils/db.js';
+import { runBash } from '../utils/bash.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LABS_DIR = path.join(__dirname, '..', '..', '..', 'labs');
@@ -41,39 +41,26 @@ function listLabs() {
 function runCheck(step) {
   if (!step.check) return true;
 
-  try {
-    switch (step.check.type) {
-      case 'file-exists': {
-        const p = step.check.path.replace('~', process.env.HOME || '/home/user');
-        const result = execSync(`test -f "${p}" && echo "exists" || echo "missing"`, {
-          encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        return result.trim() === 'exists';
-      }
-      case 'permission-check': {
-        const p = step.check.path.replace('~', process.env.HOME || '/home/user');
-        const result = execSync(`stat -c "%a" "${p}" 2>/dev/null || echo "0"`, {
-          encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        return result.trim() === step.check.expected;
-      }
-      case 'command-output': {
-        const result = execSync(step.check.command, {
-          encoding: 'utf-8', timeout: 15000, stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        return result.includes(step.check.expected);
-      }
-      case 'regex-match': {
-        const result = execSync(step.check.command, {
-          encoding: 'utf-8', timeout: 15000, stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        return new RegExp(step.check.pattern).test(result);
-      }
-      default:
-        return false;
+  // 注意：路径赋值不加引号，让 bash 在赋值语境中展开 ~（实验路径均为无空格的简单路径）
+  switch (step.check.type) {
+    case 'file-exists': {
+      const r = runBash(`p=${step.check.path}; test -f "$p" && echo "exists" || echo "missing"`, { timeout: 5000 });
+      return r.ok && r.output.trim() === 'exists';
     }
-  } catch {
-    return false;
+    case 'permission-check': {
+      const r = runBash(`p=${step.check.path}; stat -c "%a" "$p" 2>/dev/null || echo "0"`, { timeout: 5000 });
+      return r.ok && r.output.trim() === step.check.expected;
+    }
+    case 'command-output': {
+      const r = runBash(step.check.command, { timeout: 15000, shell: step.check.shell });
+      return r.ok && r.output.includes(step.check.expected);
+    }
+    case 'regex-match': {
+      const r = runBash(step.check.command, { timeout: 15000, shell: step.check.shell });
+      return r.ok && new RegExp(step.check.pattern).test(r.output);
+    }
+    default:
+      return false;
   }
 }
 
