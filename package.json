@@ -13,6 +13,8 @@
     "setup": "node scripts/init-db.js && node src/cli/index.js env-check",
     "init-db": "node scripts/init-db.js",
     "auth": "node src/server/auth-server.js",
+    "backup": "node scripts/backup-db.js",
+    "test": "node scripts/smoke-test.js",
     "dev": "node scripts/start-all.js"
   },
   "bin": {

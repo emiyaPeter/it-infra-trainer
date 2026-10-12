@@ -112,6 +112,15 @@ program
     await showStats();
   });
 
+// --- export-progress 命令 ---
+program
+  .command('export-progress')
+  .description('导出当前用户全部学习记录为 JSON（备份/迁移用）')
+  .action(async () => {
+    const { exportProgress } = await import('./commands/export-progress.js');
+    await exportProgress();
+  });
+
 // --- user 命令组 ---
 const userProgram = program
   .command('user')

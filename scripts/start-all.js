@@ -23,6 +23,12 @@ const NO_OPEN = process.env.IT_TRAINER_NO_OPEN === '1';
 console.log('');
 console.log('🚀 正在启动 IT 培训助手课程网站...');
 
+// 启动前自动备份一次数据库（静默，保留最近 7 份）
+try {
+  const { runBackup } = await import('./backup-db.js');
+  runBackup({ quiet: true });
+} catch { /* 备份失败不阻塞启动 */ }
+
 // 直接用 node 启动 vitepress CLI（避免 shell 包装导致 Windows 下 kill 不掉子进程）
 const docsServer = spawn(
   process.execPath,
