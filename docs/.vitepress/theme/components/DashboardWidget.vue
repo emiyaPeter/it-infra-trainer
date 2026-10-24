@@ -21,7 +21,7 @@
       <div v-else-if="!loadingUser && !currentUserName" class="dw-user-create-hint">
         <p>点击右上角「注册」创建你的学习账户</p>
         <button class="dw-btn dw-btn-reset dw-demo-btn" @click="loadDemoData">
-          🧪 一键载入演示数据（免注册体验）
+          🧪 载入演示数据
         </button>
       </div>
     </div>
@@ -58,10 +58,10 @@
     <div class="dw-section">
       <div class="dw-label">快速操作</div>
       <div class="dw-links">
-        <a href="/roadmap/" class="dw-link">🗺️ 学习路线图</a>
-        <a href="/courses/" class="dw-link">📚 课程目录</a>
-        <a href="/courses/networking/" class="dw-link">🌐 网络基础</a>
-        <a href="/courses/linux/" class="dw-link">🐧 Linux 管理</a>
+        <a :href="withBase('/roadmap/')" class="dw-link">🗺️ 学习路线图</a>
+        <a :href="withBase('/courses/ai-programming/')" class="dw-link">🤖 AI 编程课</a>
+        <a :href="withBase('/courses/networking/')" class="dw-link">🌐 网络基础</a>
+        <a :href="withBase('/courses/linux/')" class="dw-link">🐧 Linux 管理</a>
       </div>
     </div>
 
@@ -78,6 +78,7 @@
           </template>
         </div>
       </div>
+      <p v-if="timerMsg" class="dw-timer-msg">{{ timerMsg }}</p>
     </div>
 
     <!-- Data Management -->
@@ -104,6 +105,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { withBase } from 'vitepress'
 import {
   PHASE_CATALOG,
   ACTIVE_USER_KEY,
@@ -166,6 +168,7 @@ function loadPhaseProgress() {
 // ============================================================
 const timerRunning = ref(false)
 const timerSeconds = ref(0)
+const timerMsg = ref('')
 let timerInterval = null
 
 const timerDisplay = computed(() => {
@@ -176,12 +179,13 @@ const timerDisplay = computed(() => {
 
 function startTimer() {
   timerRunning.value = true
+  timerMsg.value = ''
   // 不重置，支持继续计时
   timerInterval = setInterval(() => {
     timerSeconds.value++
     if (timerSeconds.value >= 25 * 60) {
       stopTimer()
-      alert('🍅 25分钟到了！休息5分钟吧。')
+      timerMsg.value = '🍅 25 分钟到了！休息 5 分钟吧。'
     }
   }, 1000)
 }
@@ -193,6 +197,7 @@ function stopTimer() {
 
 function resetTimer() {
   timerSeconds.value = 0
+  timerMsg.value = ''
 }
 
 // ============================================================
@@ -610,6 +615,13 @@ onUnmounted(() => {
 .dw-timer-controls {
   display: flex;
   gap: 8px;
+}
+
+.dw-timer-msg {
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vp-c-brand);
 }
 
 .dw-btn {

@@ -1,13 +1,16 @@
 <template>
   <Layout>
-    <template #layout-top>
-      <div class="auth-top-bar">
-        <div class="auth-top-inner">
-          <span class="auth-brand">🖥️ IT 培训助手</span>
-          <div class="auth-top-widget">
-            <AuthWidget />
-          </div>
-        </div>
+    <!-- 认证组件嵌入导航栏内部（不再浮层覆盖导航链接） -->
+    <template #nav-bar-content-before>
+      <div class="auth-nav">
+        <AuthWidget />
+      </div>
+    </template>
+
+    <!-- 移动端抽屉菜单里的认证区 -->
+    <template #nav-screen-content-before>
+      <div class="auth-nav-screen">
+        <AuthWidget />
       </div>
     </template>
   </Layout>
@@ -23,6 +26,8 @@
     >
       {{ done ? '✓ 已完成' : '标记已完成' }}
     </button>
+    <!-- 非阻塞提示（替代 alert） -->
+    <div v-if="fabToast" class="fab-toast">{{ fabToast }}</div>
   </Teleport>
 </template>
 
@@ -37,6 +42,14 @@ const { Layout } = DefaultTheme
 const { page } = useData()
 
 const done = ref(false)
+const fabToast = ref('')
+let toastTimer = null
+
+function showToast(msg) {
+  fabToast.value = msg
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { fabToast.value = '' }, 2600)
+}
 
 const isChapter = computed(() => isChapterPage(page.value?.relativePath))
 
@@ -48,10 +61,11 @@ function refreshState() {
 function toggleDone() {
   const userId = localStorage.getItem(ACTIVE_USER_KEY)
   if (!userId) {
-    alert('请先点击右上角「注册」创建学习账户，再标记学习进度。')
+    showToast('请先点击右上角「注册」创建学习账户')
     return
   }
   done.value = setPageDone(userId, page.value?.relativePath, !done.value)
+  showToast(done.value ? '✓ 已计入学习进度' : '已取消本页完成标记')
   // 通知首页仪表盘等组件立即刷新进度
   window.dispatchEvent(new CustomEvent('it-trainer:progress-changed'))
 }
@@ -72,36 +86,54 @@ onUnmounted(() => {
 </script>
 
 <style>
-.auth-top-bar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  z-index: 100;
-  pointer-events: none;
-}
-
-.auth-top-inner {
+/* 导航栏内的认证区：跟随导航栏布局，不悬浮不重叠 */
+.auth-nav {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 8px 24px;
-  pointer-events: auto;
-}
-
-.auth-brand {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--vp-c-text-2);
+  margin-left: 14px;
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
-/* 浮动完成标记按钮 */
+.auth-nav .auth-widget {
+  gap: 6px;
+}
+
+.auth-nav .auth-btn {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.auth-nav .auth-user {
+  font-size: 13px;
+  max-width: 9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 移动端抽屉里的认证区 */
+.auth-nav-screen {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 4px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  margin-bottom: 10px;
+}
+
+/* 移动端导航栏放不下认证按钮（抽屉菜单里已有），隐藏避免把汉堡按钮挤出屏幕 */
+@media (max-width: 767px) {
+  .auth-nav {
+    display: none;
+  }
+}
+
+/* 浮动完成标记按钮（z-index 低于侧栏 60，侧栏打开时被盖住） */
 .done-fab {
   position: fixed;
   right: 24px;
   bottom: 88px;
-  z-index: 90;
+  z-index: 50;
   padding: 10px 18px;
   border-radius: 999px;
   border: 1px solid var(--vp-c-brand);
@@ -119,21 +151,29 @@ onUnmounted(() => {
 }
 
 .done-fab-active {
-  background: #10b981;
-  border-color: #10b981;
+  background: var(--vp-c-green-1, #10b981);
+  border-color: var(--vp-c-green-1, #10b981);
   color: #ffffff;
 }
 
+/* 非阻塞提示气泡 */
+.fab-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--vp-c-bg-elv, var(--vp-c-bg));
+  border: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
 @media (max-width: 768px) {
-  .auth-top-bar {
-    position: static;
-    padding: 4px 16px;
-    background: var(--vp-c-bg-soft);
-    border-bottom: 1px solid var(--vp-c-divider);
-  }
-  .auth-top-inner {
-    justify-content: center;
-  }
   .done-fab {
     right: 16px;
     bottom: 72px;

@@ -5,9 +5,6 @@ hero:
   name: "IT 基础设施工程师"
   text: "培训助手"
   tagline: 零基础 → 3年经验水平 · 在家自学 · 全部免费工具
-  image:
-    src: /
-    alt: IT Trainer
   actions:
     - theme: brand
       text: 🚀 开始学习
@@ -16,22 +13,25 @@ hero:
       text: 📋 查看课程目录
       link: /courses/
     - theme: alt
-      text: 🖥️ 环境检查
-      link: /roadmap/phase-1-foundation#环境准备
+      text: 🤖 AI 编程课（零基础→求职）
+      link: /courses/ai-programming/
 
 features:
   - icon: 📚
     title: 结构化课程
-    details: 10个阶段、100+篇课程，从计算机硬件到Kubernetes集群管理，循序渐进覆盖IT基础设施全部核心领域。
+    details: 17 个模块 78 章讲义，十个学习阶段全覆盖，从计算机硬件到 Kubernetes 与灾备体系，循序渐进。
+  - icon: 🤖
+    title: AI 辅助编程课
+    details: 从第一次 AI 对话到独立交付项目、通过求职面试的完整路径：提示词工程、代理工作流、简历与答辩实战。
   - icon: 🔬
-    title: 动手实验
-    details: 每节课配有命令行实验，在真实终端中操作。实验引擎自动验证你的操作结果，即时反馈。
+    title: 动手实验与作业批改
+    details: 实验在 WSL 真实环境中操作，系统自动验证结果；作业支持理论判分与实操环境检查。
   - icon: ✅
     title: 交互测验
-    details: 每章配有选择题和命令模拟题，在网页或终端中完成。即时评分和解析，巩固知识点。
+    details: 综合测验在终端中交互作答，即时评分与逐题解析，成绩自动记录。
   - icon: 📊
     title: 进度追踪
-    details: 自动记录学习进度、测验成绩和实验完成情况。可视化仪表盘帮助你了解自己的成长轨迹。
+    details: 学完一页点「标记已完成」，仪表盘按阶段实时累计进度；数据可导出备份、跨设备迁移。
   - icon: 💰
     title: 完全免费
     details: 所有工具均可免费获取 — WSL2、VirtualBox、Docker Desktop、VS Code、Minikube。零开销开始IT之旅。
@@ -163,8 +163,6 @@ footer:
 }
 </style>
 
-<DashboardWidget />
-
 ## 📋 学习路线图
 
 <div class="roadmap-grid">
@@ -184,6 +182,10 @@ footer:
     <p>{{ step.details }}</p>
   </div>
 </div>
+
+## 📊 我的学习
+
+<DashboardWidget />
 
 ---
 

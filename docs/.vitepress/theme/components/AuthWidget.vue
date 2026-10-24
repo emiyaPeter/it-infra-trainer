@@ -3,8 +3,8 @@
     <!-- 已登录 -->
     <template v-if="currentUser">
       <span class="auth-user">{{ currentUser.name }}</span>
-      <button class="auth-btn auth-btn-switch" @click="showSwitchModal = true">切换账户</button>
-      <button class="auth-btn auth-btn-register" @click="showRegisterModal = true">注册新账户</button>
+      <button class="auth-btn auth-btn-switch" @click="showSwitchModal = true">切换</button>
+      <button class="auth-btn auth-btn-register" @click="showRegisterModal = true">注册</button>
     </template>
 
     <!-- 未登录 -->
@@ -22,7 +22,7 @@
             <label>姓名</label>
             <input v-model="regForm.name" placeholder="你的姓名" :disabled="submitting" />
             <label>手机号</label>
-            <input v-model="regForm.phone" placeholder="6-15位数字" :disabled="submitting" />
+            <input v-model="regForm.phone" placeholder="11 位手机号" :disabled="submitting" />
             <label>密码</label>
             <input v-model="regForm.password" type="password" placeholder="至少6位" :disabled="submitting" />
             <label>确认密码</label>
@@ -291,8 +291,8 @@ async function doRegister() {
     errorMsg.value = '请填写所有字段'
     return
   }
-  if (!/^\d{6,15}$/.test(phone)) {
-    errorMsg.value = '手机号格式无效（6-15位数字）'
+  if (!/^1\d{10}$/.test(phone)) {
+    errorMsg.value = '请输入 11 位手机号'
     return
   }
   if (password !== confirmPassword) {
@@ -397,7 +397,7 @@ async function doLogin() {
     broadcastUserChange()
     successMsg.value = '登录成功'
     loginForm.value = { name: '', password: '' }
-    setTimeout(() => { showLoginModal.value = false; clearMessages() }, 1000)
+    setTimeout(() => { showLoginModal.value = false; clearMessages() }, 1500)
   } catch (e) {
     errorMsg.value = '登录失败: ' + e.message
   } finally {
@@ -453,7 +453,7 @@ async function doSwitch() {
     broadcastUserChange()
     successMsg.value = `已切换到 ${fullUser.name}`
     switchForm.value = { userId: '', password: '' }
-    setTimeout(() => { showSwitchModal.value = false; clearMessages() }, 1000)
+    setTimeout(() => { showSwitchModal.value = false; clearMessages() }, 1500)
   } catch (e) {
     errorMsg.value = '切换失败: ' + e.message
   } finally {
@@ -528,8 +528,7 @@ onMounted(() => {
   background: var(--vp-c-bg);
   border-radius: 12px;
   padding: 28px;
-  min-width: 340px;
-  max-width: 400px;
+  width: min(400px, 92vw);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
@@ -574,13 +573,13 @@ onMounted(() => {
 }
 
 .auth-error {
-  color: #ef4444;
+  color: var(--vp-c-danger-1, #ef4444);
   font-size: 13px;
   margin: 8px 0 0;
 }
 
 .auth-success {
-  color: #10b981;
+  color: var(--vp-c-green-1, #10b981);
   font-size: 13px;
   margin: 8px 0 0;
 }
