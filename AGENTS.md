@@ -32,6 +32,10 @@ npm run dev           # 启动站点人工验证
 - Web 进度的模块章节数是 `theme/utils/progress.js` 的 PHASE_CATALOG 常量——**新增课程章节后必须同步更新**
 - 课程内容 frontmatter：title/description/difficulty/estimatedTime/prerequisites
 - 提交粒度：一个逻辑任务一个 commit，信息说清"做了什么+为什么"
+- **站内链接一律用 `withBase()`**（或相对路径）——站点部署在子路径 `/it-infra-trainer/`，硬编码根路径会在生产 404
+- **上线/改版验收必须真截图走查，且覆盖桌面+移动两个断点**——断言不止"无重叠"，还要"无横向溢出、关键交互元素在视口内"；HTTP 200 不等于页面正确（坑 7/9）
+- **Git Bash 下带 `/` 开头的环境变量赋值（如 `BASE_PATH=/xx/`）必须加 `MSYS_NO_PATHCONV=1`**，否则被 MSYS 隐式转换成 Windows 路径写进产物（坑 8）；子路径构建后必须 grep 产物确认无 `Program Files` 字样
+- AI 相关：密钥只经 `npm run set-key` 进 `.env`；Web 端不接 AI（ADR-008）
 
 ## 排障速查
 
