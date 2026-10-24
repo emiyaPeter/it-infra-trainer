@@ -19,7 +19,7 @@ const program = new Command();
 program
   .name('it-trainer')
   .description('IT 基础设施工程师培训助手 CLI')
-  .version('1.2.0');
+  .version('1.3.0');
 
 // --- env-check 命令 ---
 program
@@ -119,6 +119,15 @@ program
   .action(async () => {
     const { exportProgress } = await import('./commands/export-progress.js');
     await exportProgress();
+  });
+
+// --- ask 命令（AI 答疑）---
+program
+  .command('ask <question>')
+  .description('AI 答疑（带课程出处；先运行 npm run set-key 配置密钥）')
+  .action(async (question) => {
+    const { ask } = await import('./commands/ask.js');
+    await ask(question);
   });
 
 // --- user 命令组 ---

@@ -18,11 +18,13 @@ const CHECK_FILES = [
   'scripts/backup-db.js',
   'scripts/export-users-json.js',
   'scripts/init-db.js',
+  'scripts/set-api-key.js',
   'src/cli/index.js',
   'src/cli/utils/bash.js',
   'src/cli/utils/db.js',
   'src/cli/utils/config.js',
   'src/cli/utils/env.js',
+  'src/cli/utils/ai.js',
   'src/cli/commands/env-check.js',
   'src/cli/commands/homework.js',
   'src/cli/commands/lab.js',
@@ -34,6 +36,7 @@ const CHECK_FILES = [
   'src/cli/commands/stats.js',
   'src/cli/commands/user.js',
   'src/cli/commands/export-progress.js',
+  'src/cli/commands/ask.js',
   'src/server/auth-server.js',
 ];
 

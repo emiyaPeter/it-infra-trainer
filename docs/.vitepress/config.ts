@@ -18,12 +18,13 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '🖥️',
+    logo: '/logo.svg',
     nav: [
       { text: '首页', link: '/' },
       { text: '学习路线图', link: '/roadmap/' },
       { text: '课程', link: '/courses/' },
       { text: '🚀 一个月速成', link: '/courses/fast-track/' },
+      { text: '🤖 AI 编程', link: '/courses/ai-programming/' },
       { text: '证书指南', link: '/certifications/' },
     ],
 
