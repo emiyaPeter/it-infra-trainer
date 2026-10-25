@@ -2,6 +2,7 @@
   "id": "linux-01",
   "title": "Linux 基础测验",
   "difficulty": "beginner",
+  "module": "linux",
   "questions": [
     {
       "id": "q1",
@@ -48,6 +49,7 @@
       "type": "fill-blank",
       "question": "使用 systemctl 启动 nginx 服务的命令是什么？",
       "correct": "systemctl start nginx",
+      "accepts": ["sudo systemctl start nginx", "systemctl start nginx.service"],
       "explanation": "systemctl start nginx 启动服务，systemctl enable nginx 设置开机自启，systemctl status nginx 查看状态。"
     },
     {

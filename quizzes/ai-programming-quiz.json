@@ -2,6 +2,7 @@
   "id": "ai-programming-01",
   "title": "AI 辅助编程综合测验",
   "difficulty": "intermediate",
+  "module": "ai-programming",
   "questions": [
     {
       "id": "q1",
@@ -33,7 +34,12 @@
       "id": "q3",
       "type": "multiple-choice",
       "question": "结构化提示词四要素中，最常被遗漏、也最容易导致\"AI 自由发挥\"的是？",
-      "options": ["背景（Context）", "任务（Task）", "约束（Constraints）", "输出格式（Format）"],
+      "options": [
+        "背景（Context）",
+        "任务（Task）",
+        "约束（Constraints）",
+        "输出格式（Format）"
+      ],
       "correct": 2,
       "explanation": "没有约束，AI 会按通用最佳实践发挥——引入你不需要的依赖、过度设计、改你没让它动的代码。约束是给 AI 圈定活动范围的关键。"
     },

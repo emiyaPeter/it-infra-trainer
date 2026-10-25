@@ -52,6 +52,9 @@
         </div>
         <span class="dw-phase-pct">{{ phase.total > 0 ? phase.progress + '%' : '—' }}</span>
       </div>
+      <p v-if="verifiedCount > 0" class="dw-verified">
+        🏆 测验达标模块：{{ verifiedCount }} 个（<a :href="withBase('/quiz/')" class="dw-verified-link">随堂测验</a>≥80 分自动点亮章节）
+      </p>
     </div>
 
     <!-- Quick Links -->
@@ -59,6 +62,7 @@
       <div class="dw-label">快速操作</div>
       <div class="dw-links">
         <a :href="withBase('/roadmap/')" class="dw-link">🗺️ 学习路线图</a>
+        <a :href="withBase('/quiz/')" class="dw-link">📝 随堂测验</a>
         <a :href="withBase('/courses/ai-programming/')" class="dw-link">🤖 AI 编程课</a>
         <a :href="withBase('/courses/networking/')" class="dw-link">🌐 网络基础</a>
         <a :href="withBase('/courses/linux/')" class="dw-link">🐧 Linux 管理</a>
@@ -206,6 +210,7 @@ function resetTimer() {
 const currentUserName = ref('')
 const loadingUser = ref(true)
 const userList = ref([])
+const verifiedCount = ref(0)
 
 function refreshAll() {
   const users = loadUsers()
@@ -216,6 +221,15 @@ function refreshAll() {
     ? users.find(u => String(u.id) === String(activeId))
     : null
   currentUserName.value = found && found.name !== 'default' ? found.name : ''
+
+  // 测验达标模块数（随堂测验 ≥80 分点亮，见 QuizWidget）
+  verifiedCount.value = 0
+  if (found) {
+    try {
+      const q = JSON.parse(localStorage.getItem('it-trainer-quiz-' + found.id) || 'null')
+      if (q && Array.isArray(q.verifiedModules)) verifiedCount.value = q.verifiedModules.length
+    } catch { /* 忽略损坏数据 */ }
+  }
 
   loadPhaseProgress()
 }
@@ -589,6 +603,17 @@ onUnmounted(() => {
   margin: 8px 0 0;
   font-size: 12px;
   color: var(--vp-c-text-3);
+}
+
+.dw-verified {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--vp-c-green-1, #10b981);
+}
+
+.dw-verified-link {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .dw-data-msg {

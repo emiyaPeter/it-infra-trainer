@@ -7,6 +7,7 @@ import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import DashboardWidget from './components/DashboardWidget.vue'
 import AuthWidget from './components/AuthWidget.vue'
+import QuizWidget from './components/QuizWidget.vue'
 import CustomLayout from './CustomLayout.vue'
 import './styles/custom.css'
 
@@ -16,5 +17,6 @@ export default {
   enhanceApp({ app }) {
     app.component('DashboardWidget', DashboardWidget)
     app.component('AuthWidget', AuthWidget)
+    app.component('QuizWidget', QuizWidget)
   },
 } satisfies Theme

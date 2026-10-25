@@ -1,6 +1,6 @@
 {
   "name": "it-infra-trainer",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "IT基础设施工程师培训助手 - 零基础到3年经验水平",
   "private": true,
   "type": "module",

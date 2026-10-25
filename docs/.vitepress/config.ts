@@ -25,6 +25,7 @@ export default defineConfig({
       { text: '课程', link: '/courses/' },
       { text: '🚀 一个月速成', link: '/courses/fast-track/' },
       { text: '🤖 AI 编程', link: '/courses/ai-programming/' },
+      { text: '📝 随堂测验', link: '/quiz/' },
       { text: '证书指南', link: '/certifications/' },
     ],
 

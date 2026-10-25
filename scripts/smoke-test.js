@@ -38,6 +38,8 @@ const CHECK_FILES = [
   'src/cli/commands/export-progress.js',
   'src/cli/commands/ask.js',
   'src/server/auth-server.js',
+  'docs/quiz/index.md',
+  'docs/.vitepress/theme/components/QuizWidget.vue',
 ];
 
 // CLI 冒烟：非交互命令必须退出码 0
@@ -64,9 +66,10 @@ console.log('');
 console.log('🧪 IT 培训助手冒烟自检');
 console.log('─'.repeat(50));
 
-console.log('\n[1/3] 语法检查（node --check）');
+console.log('\n[1/3] 语法检查（node --check；.vue/.md 检存在，编译由构建步骤覆盖）');
 for (const f of CHECK_FILES) {
   if (!fs.existsSync(path.join(ROOT, f))) { bad(`文件缺失: ${f}`); continue; }
+  if (!f.endsWith('.js')) { ok(`${f} (存在)`); continue; }
   const r = spawnSync(process.execPath, ['--check', f], { cwd: ROOT, encoding: 'utf-8', windowsHide: true });
   r.status === 0 ? ok(f) : bad(`${f} :: ${r.stderr.slice(0, 200)}`);
 }

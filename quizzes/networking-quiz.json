@@ -2,12 +2,18 @@
   "id": "networking-01",
   "title": "网络基础综合测验",
   "difficulty": "beginner",
+  "module": "networking",
   "questions": [
     {
       "id": "q1",
       "type": "multiple-choice",
       "question": "OSI七层模型中，路由器工作在哪一层？",
-      "options": ["第1层：物理层", "第2层：数据链路层", "第3层：网络层", "第4层：传输层"],
+      "options": [
+        "第1层：物理层",
+        "第2层：数据链路层",
+        "第3层：网络层",
+        "第4层：传输层"
+      ],
       "correct": 2,
       "explanation": "路由器根据IP地址转发数据包，IP地址属于第3层（网络层）。交换机工作在第2层（MAC地址），集线器在第1层。"
     },
@@ -15,7 +21,12 @@
       "id": "q2",
       "type": "multiple-choice",
       "question": "以下哪个是有效的私有IP地址？",
-      "options": ["8.8.8.8", "172.16.0.1", "200.10.0.1", "1.1.1.1"],
+      "options": [
+        "8.8.8.8",
+        "172.16.0.1",
+        "200.10.0.1",
+        "1.1.1.1"
+      ],
       "correct": 1,
       "explanation": "172.16.0.0/12 是私有地址范围（172.16.0.0 - 172.31.255.255）。8.8.8.8是Google的DNS（公网IP），1.1.1.1是Cloudflare的DNS。"
     },
@@ -36,7 +47,12 @@
       "id": "q4",
       "type": "multiple-choice",
       "question": "/26 子网掩码对应多少个可用主机地址？",
-      "options": ["64", "62", "32", "30"],
+      "options": [
+        "64",
+        "62",
+        "32",
+        "30"
+      ],
       "correct": 1,
       "explanation": "/26 = 2^(32-26) - 2 = 64 - 2 = 62 个可用主机。减2是因为网络地址和广播地址不可用。"
     },
@@ -44,7 +60,12 @@
       "id": "q5",
       "type": "multiple-choice",
       "question": "DNS默认使用哪个端口？",
-      "options": ["80", "443", "53", "22"],
+      "options": [
+        "80",
+        "443",
+        "53",
+        "22"
+      ],
       "correct": 2,
       "explanation": "DNS 使用端口 53（UDP为主，TCP为辅）。80=HTTP, 443=HTTPS, 22=SSH。"
     },
@@ -53,13 +74,23 @@
       "type": "fill-blank",
       "question": "在Linux中使用什么命令查看IP地址？（提示：两个单词，如'ip addr'）",
       "correct": "ip addr",
+      "accepts": [
+        "ip a",
+        "ip address",
+        "ip addr show"
+      ],
       "explanation": "ip addr show 是现代Linux查看IP地址的命令。旧的命令是 ifconfig，但已逐渐被 ip 命令取代。"
     },
     {
       "id": "q7",
       "type": "multiple-choice",
       "question": "以下哪个命令用于追踪数据包经过的路由路径？",
-      "options": ["ping", "nslookup", "tracert / traceroute", "netstat"],
+      "options": [
+        "ping",
+        "nslookup",
+        "tracert / traceroute",
+        "netstat"
+      ],
       "correct": 2,
       "explanation": "tracert(Windows) / traceroute(Linux) 通过逐跳增加TTL值来发现数据包经过的路径。"
     },
@@ -67,7 +98,12 @@
       "id": "q8",
       "type": "multiple-choice",
       "question": "UDP相比TCP的最大优势是什么？",
-      "options": ["更安全", "延迟更低、开销更小", "保证数据不丢失", "数据量更大"],
+      "options": [
+        "更安全",
+        "延迟更低、开销更小",
+        "保证数据不丢失",
+        "数据量更大"
+      ],
       "correct": 1,
       "explanation": "UDP无需建立连接，头部仅8字节(TCP需20-60字节)，无确认机制，因此延迟低、开销小。适合DNS、实时音视频等场景。"
     },
@@ -75,7 +111,12 @@
       "id": "q9",
       "type": "multiple-choice",
       "question": "192.168.1.255 在 /24 网络中是什么地址？",
-      "options": ["网络地址", "网关地址", "广播地址", "任意主机地址"],
+      "options": [
+        "网络地址",
+        "网关地址",
+        "广播地址",
+        "任意主机地址"
+      ],
       "correct": 2,
       "explanation": "主机位全为1（.255）是广播地址。主机位全为0（.0）是网络地址。在/24网络中，广播地址=网络地址的主机位全填1。"
     },
@@ -83,7 +124,12 @@
       "id": "q10",
       "type": "multiple-choice",
       "question": "HTTPS网站默认使用哪个端口？",
-      "options": ["80", "443", "8080", "8443"],
+      "options": [
+        "80",
+        "443",
+        "8080",
+        "8443"
+      ],
       "correct": 1,
       "explanation": "HTTPS = HTTP over TLS/SSL，默认端口443。HTTP默认80。8080和8443常被用作开发和测试的替代端口。"
     }
