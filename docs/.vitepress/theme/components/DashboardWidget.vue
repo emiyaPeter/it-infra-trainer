@@ -112,6 +112,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { withBase } from 'vitepress'
 import {
   PHASE_CATALOG,
+  phaseChapterTotal,
   ACTIVE_USER_KEY,
   loadUserProgress,
   computePhaseProgress,
@@ -144,7 +145,7 @@ const phases = ref(
   PHASE_CATALOG.map((p) => ({
     id: p.id,
     label: p.label,
-    total: p.chapters,
+    total: phaseChapterTotal(p), // 章节数由 sidebar 自动统计（v2.6）
     progress: 0,
   }))
 )

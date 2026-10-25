@@ -1,0 +1,127 @@
+{
+  "id": "terraform-01",
+  "title": "Terraform 测验",
+  "difficulty": "beginner",
+  "module": "terraform",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "关于 Terraform 与 Ansible 的分工，正确的说法是？",
+      "options": [
+        "Terraform 负责创建/销毁基础设施（虚机、网络、数据库实例），Ansible 负责配置已存在的机器（装软件、改配置），两者是分工而非竞争",
+        "两者功能完全相同，学会一个就能完全替代另一个",
+        "Ansible 用来创建云资源，Terraform 用来批量执行 shell 脚本",
+        "生产环境规定只能使用其中一种工具"
+      ],
+      "correct": 0,
+      "explanation": "类比：Terraform 是“买地盖楼”（项目之初开荒），Ansible 是“水电装修”（机器就位后配置）；生产中常见组合拳是 Terraform 开资源、Ansible 做配置。B 忽略了两者管理对象的差异，C 把职责说反了，D 与实际生产实践不符。",
+      "chapter": "courses/terraform/01-iac-concepts.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "Terraform 核心工作流的正确顺序是？",
+      "options": [
+        "terraform init → terraform plan → terraform apply → terraform destroy",
+        "terraform apply → terraform plan → terraform init → terraform destroy",
+        "terraform init → terraform apply → terraform plan → terraform destroy",
+        "terraform plan → terraform init → terraform apply → terraform destroy"
+      ],
+      "correct": 0,
+      "explanation": "init 拉取 provider 插件（装驱动），plan 只读预演将要创建/修改/销毁什么，apply 真正执行，destroy 销毁全部资源。要记住 plan 是 Terraform 的安全带：任何 apply 前先 plan 看懂输出，能躲掉 90% 的事故。",
+      "chapter": "courses/terraform/01-iac-concepts.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "HCL 代码 image = docker_image.nginx.image_id 的作用是？",
+      "options": [
+        "引用另一个资源的属性，Terraform 由此自动建立依赖：先拉镜像、再建容器",
+        "声明一个名为 image 的新输入变量",
+        "调用本地 shell 命令去获取镜像 ID",
+        "只是给人看的注释，不影响执行"
+      ],
+      "correct": 0,
+      "explanation": "引用语法是“资源类型.本地名字.属性”，资源之间靠引用建立依赖，Terraform 会自动算出“先拉镜像再建容器”的顺序，不需要你写先后逻辑。它不是变量声明，不是 shell 调用，更不是注释；如果删掉它，容器就失去了对镜像的引用。",
+      "chapter": "courses/terraform/02-hcl-basics.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "terraform plan 输出中，符号 +、~、- 分别表示什么？",
+      "options": [
+        "+ 创建资源、~ 就地修改资源、- 销毁资源",
+        "+ 修改资源、~ 创建资源、- 注释掉资源",
+        "+ 销毁资源、~ 创建资源、- 修改资源",
+        "+ 新增文件、~ 语法警告、- 删除文件"
+      ],
+      "correct": 0,
+      "explanation": "这是 Terraform 使用者的第一素养：+ 建、~ 改、- 删。尤其要盯住 -：当 plan 里出现计划之外的销毁行时，绝不按回车确认，这是生产环境的保命习惯。B、C 符号含义错乱，D 混淆了文件系统操作。",
+      "chapter": "courses/terraform/02-hcl-basics.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "如果不小心丢失了 terraform.tfstate 文件，后果是？",
+      "options": [
+        "云上资源仍然存在，但 Terraform 不再“认识”它们，无法继续管理和销毁这些资源",
+        "所有已创建的云资源会被自动删除",
+        "没有任何影响，下次 apply 会照常工作",
+        "Terraform 会自动扫描云端，把所有资源重新登记进 state"
+      ],
+      "correct": 0,
+      "explanation": "state 是 Terraform 的“账本”，丢了账本 = 丢了资源的“户口”——资源还在，但 Terraform 只认识账本里记着的资源。因此必须备份 state（相当于备份基础设施的户口本）；它还明文包含敏感值，要写进 .gitignore、绝不手工编辑。B、C、D 都是对 state 机制的误解。",
+      "chapter": "courses/terraform/03-state-vars.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "Terraform 多环境隔离的推荐起步方案是？",
+      "options": [
+        "目录隔离：envs/dev 与 envs/prod 各自独立目录、各带一份自己的 state",
+        "所有人共用同一个目录和同一份 state 文件",
+        "把生产环境的密钥直接写进 main.tf 来区分环境",
+        "给每个环境安装不同版本的 Terraform"
+      ],
+      "correct": 0,
+      "explanation": "目录隔离边界清晰、误伤概率低，是推荐的起步方案；workspace 切换轻量但容易切错环境；生产标配是把 state 放到远端带锁的对象存储（如 S3+DynamoDB、OSS）。C 是严重错误——密钥绝不写进 .tf，.tf 会进 git 而密钥绝不进 git；D 与环境隔离无关。",
+      "chapter": "courses/terraform/03-state-vars.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "Terraform 模块中的 variables 和 outputs，分别类比编程中的什么概念？",
+      "options": [
+        "形参（入参接口）与返回值",
+        "全局变量与常量",
+        "注释与文档",
+        "类与对象"
+      ],
+      "correct": 0,
+      "explanation": "模块 = 带参数的一摞 .tf：variables 是模块的入参接口（形参），outputs 是模块的返回值，source 相当于 import；模块不写 outputs，调用方就拿不到执行结果。另外，引入或更新模块后需要重新执行 terraform init。",
+      "chapter": "courses/terraform/04-modules-practice.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "关于 Terraform 的团队协作规范，正确的做法是？",
+      "options": [
+        "开分支修改 .tf 并跑 terraform fmt 和 validate，PR 中贴出 terraform plan 输出供 review，合并后由负责人统一 apply",
+        "所有人都可以直接在生产目录里同时执行 terraform apply",
+        "把 terraform.tfstate 提交进 git，方便团队共享",
+        "只要发现两处代码相似，就立即抽成公共模块"
+      ],
+      "correct": 0,
+      "explanation": "这套流程的本质是把基础设施变更纳入和代码完全相同的 review/审计轨道。两人同时 apply 会把 state 账本写坏，生产必须用远端带锁的 state；state 明文包含敏感值，提交 git 会泄露且造成账本混乱；抽模块的标准是“三处以上相似且变化方向一致”，过早抽象比复制粘贴更难维护。",
+      "chapter": "courses/terraform/04-modules-practice.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "情境：请用 Terraform 管理本地 Docker 上的一个 Nginx 容器：容器名通过变量 container_name 读取（默认值 tf-web），宿主机 8080 端口映射到容器 80 端口，执行完成后输出访问地址。写出主要 .tf 文件内容（provider、变量、资源、输出）以及完整的操作命令。",
+      "reference": "provider 声明：terraform 块的 required_providers 中声明 docker（source 为 kreuzwerker/docker），再写 provider \"docker\" {} 空块（本地 Docker 无需凭证）\n变量定义：variable \"container_name\" 块，type 为 string，default 为 tf-web；在资源里用 var.container_name 引用\n资源：docker_image（nginx:1.27）+ docker_container（name = var.container_name，image 引用 docker_image.nginx.image_id 建立依赖，ports 中 internal = 80、external = 8080）\n输出：output 块输出 value = \"http://localhost:8080\"\n命令流程：terraform init（下载 provider 插件）→ terraform plan（确认 + 创建计划）→ terraform apply → curl localhost:8080 验证 Nginx 欢迎页；再次 apply 应显示 No changes（幂等）；实验结束用 terraform destroy 清理",
+      "chapter": "courses/terraform/02-hcl-basics.md"
+    }
+  ]
+}

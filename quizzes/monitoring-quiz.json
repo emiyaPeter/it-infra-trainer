@@ -1,0 +1,127 @@
+{
+  "id": "monitoring-01",
+  "title": "监控体系测验",
+  "difficulty": "beginner",
+  "module": "monitoring",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "想知道系统里'到底发生了什么'（例如某次报错的详细经过），按可观测性三大支柱的分工，应该去查哪类数据？",
+      "options": [
+        "Metrics 指标",
+        "Logs 日志",
+        "Traces 追踪",
+        "告警规则"
+      ],
+      "correct": 1,
+      "explanation": "三大支柱各有分工：Metrics 答'系统现在状态如何'，Logs 答'发生了什么'，Traces 答'请求走了哪些服务'，报错细节要看日志（ELK/Loki）。D 告警规则只是监控的配置，不属于三大支柱。",
+      "chapter": "courses/monitoring/01-monitoring-concepts.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "Google SRE 黄金四信号中，'CPU 80%+ / 磁盘 85%+ 这类资源快满了吗'的判断属于哪个信号？",
+      "options": [
+        "延迟 Latency",
+        "流量 Traffic",
+        "错误 Errors",
+        "饱和度 Saturation"
+      ],
+      "correct": 3,
+      "explanation": "饱和度回答'资源快满了吗'，CPU、磁盘等占用接近上限就是饱和度过高。延迟是请求花了多长时间，流量是每秒多少请求，错误是失败率——三者与'容量是否快耗尽'是不同维度。",
+      "chapter": "courses/monitoring/01-monitoring-concepts.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "在 prometheus.yml 的 scrape_configs 里写了 targets: ['localhost:9100']，这个 9100 端口通常是干什么的？",
+      "options": [
+        "Prometheus 自身 Web 界面的端口",
+        "node_exporter 暴露主机指标的端口",
+        "Grafana 的默认端口",
+        "Kibana 的默认端口"
+      ],
+      "correct": 1,
+      "explanation": "9100 是 node_exporter 的端口，它把 CPU/内存/磁盘等主机指标暴露出来供 Prometheus 定期抓取。9090 才是 Prometheus 自己的端口，3000 是 Grafana，5601 是 Kibana，这几个端口号要记牢。",
+      "chapter": "courses/monitoring/02-prometheus.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "PromQL 查询 `rate(node_cpu_seconds_total[5m])` 中，rate() 函数的作用是什么？",
+      "options": [
+        "计算计数器在时间窗口内的增长率，把一直累加的值转成速率",
+        "给所有指标打一个综合评分",
+        "只保留最近 5 秒钟的数据",
+        "远程重启 Prometheus 服务"
+      ],
+      "correct": 0,
+      "explanation": "CPU 时间这类 counter 是持续累加的，直接看没有意义，rate() 取 5 分钟窗口算出每秒增长率才能反映真实使用情况，课程用它配合 mode=\"idle\" 求出 CPU 使用百分比。B/C/D 都不是 rate() 的功能，C 还混淆了 5m 和 5s。",
+      "chapter": "courses/monitoring/02-prometheus.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "刚装好 Grafana 并接入 Prometheus 数据源，想最快看到一台 Linux 服务器的完整监控图表，课程推荐的做法是？",
+      "options": [
+        "从零开始手工一个个创建面板",
+        "导入社区仪表盘 Node Exporter Full（ID 1860）",
+        "把 Grafana 卸载重装一遍",
+        "把数据导出到 Excel 里画图"
+      ],
+      "correct": 1,
+      "explanation": "Grafana.com 有数千个免费社区面板，点 Import 输入 1860、选择 Prometheus 数据源，立刻得到完整的服务器监控视图。手工逐个建面板费时费力；C/D 与可视化效率背道而驰。",
+      "chapter": "courses/monitoring/03-grafana.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "Grafana 告警规则 `node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes < 0.1` 表达的含义是什么？",
+      "options": [
+        "根分区可用空间不足总容量的 10% 时触发告警",
+        "可用内存不足 10% 时触发告警",
+        "CPU 使用率超过 10% 时触发告警",
+        "磁盘写入速度超过每秒 10MB 时触发告警"
+      ],
+      "correct": 0,
+      "explanation": "filesystem 系列指标针对磁盘文件系统：根分区可用字节除以总字节小于 0.1，就是'磁盘不足 10%'。内存要用 memory 系列指标，CPU 要用 cpu 系列，D 则完全是无中生有的解读。",
+      "chapter": "courses/monitoring/03-grafana.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "ELK 日志平台中，一条日志的正确流转顺序是？",
+      "options": [
+        "App → Filebeat → Logstash → Elasticsearch → Kibana",
+        "App → Kibana → Elasticsearch → Logstash → Filebeat",
+        "App → Elasticsearch → Filebeat → Logstash → Kibana",
+        "App → Logstash → Filebeat → Kibana → Elasticsearch"
+      ],
+      "correct": 0,
+      "explanation": "按角色记最牢：Filebeat 在应用服务器上采集日志，Logstash 负责加工处理，Elasticsearch 负责存储，Kibana 负责搜索展示。B/C/D 都把'展示的 Kibana'和'采集的 Filebeat'放错了位置。",
+      "chapter": "courses/monitoring/04-elk.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "课程指出 ELK 集中管理日志的核心价值是什么？",
+      "options": [
+        "100 台服务器的日志在一个搜索框里查，不用再一台台 SSH 上去找",
+        "能自动发现并修复所有应用故障",
+        "可以完全替代数据备份",
+        "让服务器的 CPU 运行得更快"
+      ],
+      "correct": 0,
+      "explanation": "集中搜索、根据时间戳和关键词快速定位故障、留存 SSH 登录和 sudo 记录做安全审计，都是 ELK 的核心用途。B/C/D 是常见误解：日志平台帮你'看得清'，但不自动修故障，更不能替代备份，也不提升硬件性能。",
+      "chapter": "courses/monitoring/04-elk.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "公司有 3 台服务器（10.0.0.11、10.0.0.12、10.0.0.13），每台都已在 9100 端口运行 node_exporter。请写出 prometheus.yml 中 scrape_configs 的配置，把这 3 台加入名为 nodes 的采集任务，并写一条 PromQL 查询'当前可用内存（GB）'。",
+      "reference": "要点：① scrape_configs: 下添加一个任务 - job_name: 'nodes'；② 任务里用 static_configs，targets 写成列表：['10.0.0.11:9100', '10.0.0.12:9100', '10.0.0.13:9100']，注意每台都带 :9100 端口；③ 保存后重启/重载 Prometheus，访问 http://localhost:9090 的 Status→Targets 确认三个目标都是 UP；④ 可用内存 PromQL：node_memory_MemAvailable_bytes / 1024^3（除以 1024^3 把字节换成 GB）。",
+      "chapter": "courses/monitoring/02-prometheus.md"
+    }
+  ]
+}

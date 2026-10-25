@@ -5,23 +5,30 @@
 // - 章节页判定: courses/<类目>/ 下以两位数字开头的页面（index 不算）
 // ============================================================
 
+import { chapterListOf } from './chapters.js'
+
 export const ACTIVE_USER_KEY = 'it-trainer-active-user-id'
 const PROGRESS_KEY_PREFIX = 'it-trainer-progress-'
 
-// 阶段目录：match 为 courses/ 下的类目目录名，chapters 为该类目章节页总数。
-// 新增课程章节后请同步更新 chapters（当前共 52 章：7+8+5+4+4+4+4+4+8+4）。
+// 阶段目录：match 为 courses/ 下的类目目录名。
+// 章节数由 chapters.js 从 sidebar 自动统计（v2.6 起），新增课程章节无需手工同步。
 export const PHASE_CATALOG = [
-  { id: 1, label: '阶段1：基础入门', match: 'networking', chapters: 7 },
-  { id: 2, label: '阶段2：Linux 管理', match: 'linux', chapters: 8 },
-  { id: 3, label: '阶段3：Windows Server', match: 'windows-server', chapters: 5 },
-  { id: 4, label: '阶段4：虚拟化', match: 'virtualization', chapters: 4 },
-  { id: 5, label: '阶段5：容器', match: 'docker', chapters: 4 },
-  { id: 6, label: '阶段6：自动化', match: 'ansible', chapters: 4 },
-  { id: 7, label: '阶段7：监控', match: 'monitoring', chapters: 4 },
-  { id: 8, label: '阶段8：云计算', match: 'cloud', chapters: 4 },
-  { id: 9, label: '阶段9：安全', match: 'security', chapters: 8 },
-  { id: 10, label: '阶段10：灾备', match: 'dr-backup', chapters: 4 },
+  { id: 1, label: '阶段1：基础入门', match: 'networking' },
+  { id: 2, label: '阶段2：Linux 管理', match: 'linux' },
+  { id: 3, label: '阶段3：Windows Server', match: 'windows-server' },
+  { id: 4, label: '阶段4：虚拟化', match: 'virtualization' },
+  { id: 5, label: '阶段5：容器', match: 'docker' },
+  { id: 6, label: '阶段6：自动化', match: 'ansible' },
+  { id: 7, label: '阶段7：监控', match: 'monitoring' },
+  { id: 8, label: '阶段8：云计算', match: 'cloud' },
+  { id: 9, label: '阶段9：安全', match: 'security' },
+  { id: 10, label: '阶段10：灾备', match: 'dr-backup' },
 ]
+
+/** 某阶段的章节总数（sidebar 自动统计） */
+export function phaseChapterTotal(phase) {
+  return chapterListOf(phase.match).length
+}
 
 /** relativePath 是否为课程章节页（courses/<类目>/NN-xxx.md） */
 export function isChapterPage(relativePath) {
@@ -71,16 +78,17 @@ export function phaseCompletedCount(progress, phase) {
   }).length
 }
 
-/** 计算各阶段进度百分比（0-100；无讲义的阶段恒为 0） */
+/** 计算各阶段进度百分比（0-100；无章节的阶段恒为 0） */
 export function computePhaseProgress(progress) {
   const result = {}
   for (const phase of PHASE_CATALOG) {
-    if (phase.chapters <= 0) {
+    const total = phaseChapterTotal(phase)
+    if (total <= 0) {
       result[phase.id] = 0
       continue
     }
     const done = phaseCompletedCount(progress, phase)
-    result[phase.id] = Math.min(100, Math.round((done / phase.chapters) * 100))
+    result[phase.id] = Math.min(100, Math.round((done / total) * 100))
   }
   return result
 }

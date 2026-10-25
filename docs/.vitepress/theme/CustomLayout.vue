@@ -17,6 +17,12 @@
 
   <!-- 课程章节页：右下角浮动"标记已完成"按钮 -->
   <Teleport to="body">
+    <a
+      v-if="chapterQuizCount > 0"
+      class="chapter-quiz-fab"
+      :href="chapterQuizHref"
+      title="做本章节的配套小测"
+    >📝 本章小测 {{ chapterQuizCount }} 题</a>
     <button
       v-if="isChapter"
       class="done-fab"
@@ -33,10 +39,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useData } from 'vitepress'
+import { useData, withBase } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import AuthWidget from './components/AuthWidget.vue'
 import { ACTIVE_USER_KEY, isChapterPage, isPageDone, setPageDone } from './utils/progress.js'
+import { chapterQuestionCount } from './utils/chapters.js'
 
 const { Layout } = DefaultTheme
 const { page } = useData()
@@ -44,6 +51,12 @@ const { page } = useData()
 const done = ref(false)
 const fabToast = ref('')
 let toastTimer = null
+
+// 本章小测入口（该章有配套题目才显示，深链 /quiz/?chapter=...）
+const chapterQuizCount = computed(() => chapterQuestionCount(page.value?.relativePath || ''))
+const chapterQuizHref = computed(() =>
+  withBase('/quiz/') + '?chapter=' + encodeURIComponent(page.value?.relativePath || '')
+)
 
 function showToast(msg) {
   fabToast.value = msg
@@ -129,6 +142,24 @@ onUnmounted(() => {
 }
 
 /* 浮动完成标记按钮（z-index 低于侧栏 60，侧栏打开时被盖住） */
+.chapter-quiz-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 148px;
+  z-index: 50;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--vp-c-brand);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-brand);
+  font-size: 13px;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+.chapter-quiz-fab:hover {
+  background: var(--vp-c-brand-soft, rgba(59, 130, 246, 0.12));
+}
+
 .done-fab {
   position: fixed;
   right: 24px;

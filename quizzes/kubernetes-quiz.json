@@ -1,0 +1,127 @@
+{
+  "id": "kubernetes-01",
+  "title": "Kubernetes 测验",
+  "difficulty": "beginner",
+  "module": "kubernetes",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "Kubernetes 控制面（集群的“大脑”）中，负责“决定容器放在哪台节点上”的组件是？",
+      "options": [
+        "Scheduler（调度器）",
+        "etcd",
+        "API Server",
+        "kubelet"
+      ],
+      "correct": 0,
+      "explanation": "Scheduler 负责决定容器放在哪台机器上。etcd 是存储集群全部状态的数据库；API Server 是集群唯一入口（kubectl 连的就是它）；kubelet 是每个工作节点上的“工头”，负责执行而非调度决策。",
+      "chapter": "courses/kubernetes/01-k8s-concepts.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "手动执行 kubectl delete pod 删除一个由 Deployment 管理的 Pod 后，发现它“又回来了”，原因是？",
+      "options": [
+        "Deployment 声明的期望副本数（replicas）没有变，控制器发现现实少于期望后自动重建了 Pod",
+        "Pod 本身具有自动复活的能力",
+        "Kubernetes 集群出现了故障，产生了重复对象",
+        "kubectl delete 命令没有真正执行成功"
+      ],
+      "correct": 0,
+      "explanation": "这是声明式思维的直接体现：你删掉的是“现实”，而 Deployment 里的期望（如 replicas: 2）还在，Controller 会持续让现实匹配期望、自动补齐。想真正减少副本应该修改期望（如 kubectl scale），而不是逐个删 Pod。B、C、D 都是对自愈机制的误解。",
+      "chapter": "courses/kubernetes/01-k8s-concepts.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "访问 Kubernetes 里的应用时，为什么推荐通过 Service 而不是直接连 Pod 的 IP？",
+      "options": [
+        "Pod IP 是集群内部地址，且 Pod 重建、迁移后会变化；Service 提供一组 Pod 的稳定访问入口",
+        "Pod IP 比 Service 地址更稳定，只是数量太多记不住",
+        "Service 会自动把 Pod 里的数据持久化到磁盘",
+        "Service 和 Pod 的 IP 完全相同，用哪个都一样"
+      ],
+      "correct": 0,
+      "explanation": "Pod 是易逝的，随时可能被重建或迁移，IP 会跟着变；Service 就像前台总机，Pod 换了“号码”，总机号不变。而且 Pod IP 是集群内部地址，集群外访问要走 Service（NodePort、minikube service 等）。C 与存储无关（数据要靠卷）；B、D 与事实相反。",
+      "chapter": "courses/kubernetes/01-k8s-concepts.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "在 minikube 中部署的 Pod 一直卡在 ErrImagePull 状态，排查的第一步应该是？",
+      "options": [
+        "执行 kubectl describe pod 查看底部 Events 事件（排障第一刀）",
+        "立刻删除整个 Deployment 重新部署",
+        "重启 minikube 集群",
+        "重新安装 kubectl 客户端"
+      ],
+      "correct": 0,
+      "explanation": "describe 的 Events 里 85% 的问题有直接答案，例如镜像名拼错导致拉取失败会写得明明白白。B、C 在没有找到根因前属于盲目操作，问题还会复现；D 与客户端安装无关。",
+      "chapter": "courses/kubernetes/02-minikube-quickstart.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "以下哪种 Service 类型会在每台节点上开放一个 30xxx 端口，常用于学习环境或临时对外暴露服务？",
+      "options": [
+        "NodePort",
+        "ClusterIP",
+        "LoadBalancer",
+        "ExternalName"
+      ],
+      "correct": 0,
+      "explanation": "NodePort 在每台节点开一个 30xxx 端口映射，适合学习和临时暴露。ClusterIP 是默认类型，仅提供集群内部虚拟 IP；LoadBalancer 由云厂商分配外部负载均衡器，是云上生产入口；ExternalName 只是 DNS 别名（CNAME），用于引用外部服务。",
+      "chapter": "courses/kubernetes/03-core-resources.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "执行 kubectl set image 把 web 从 nginx:1.27 升级到 1.28 后，发现新版本有问题，最快的恢复方式是？",
+      "options": [
+        "执行 kubectl rollout undo deployment/web 一键回滚到上一版本",
+        "手动删除所有 Pod，让它们自动用旧镜像重建",
+        "删除整个集群重新部署一遍",
+        "没有任何快速办法，只能重写 YAML 再 apply"
+      ],
+      "correct": 0,
+      "explanation": "rollout undo 可以一键回滚到上一版（加 --to-revision 还能回到指定历史版本），这是滚动更新配套的安全网。B 无效：删掉 Pod 后重建的仍是当前版本（新镜像）；C 小题大做；D 可行但远不如 undo 直接。",
+      "chapter": "courses/kubernetes/03-core-resources.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "livenessProbe（存活探针）与 readinessProbe（就绪探针）的区别是？",
+      "options": [
+        "liveness 失败会重启容器；readiness 失败只是暂时摘除流量、不重启容器",
+        "两者作用完全相同，可以互相替代",
+        "readiness 失败会重启容器；liveness 失败只摘除流量",
+        "探针只用于监控面板展示，对容器没有任何实际影响"
+      ],
+      "correct": 0,
+      "explanation": "liveness 针对“进程在但不响应”的应用卡死——用重启解决；readiness 针对“暂时没准备好”（启动中/依赖故障）——先不给它流量，恢复后再接回。两者分工不同，生产环境都建议配置，配错探针路径是 Pod Not Ready 的常见原因。",
+      "chapter": "courses/kubernetes/04-ops-basics.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "Kubernetes 中，容器内存使用超过了 resources.limits 设置的上限，会发生什么？",
+      "options": [
+        "容器会被 OOMKill 杀掉（describe 中 Last State 显示 OOMKilled）",
+        "limits 会被自动调大以适配容器的需求",
+        "容器暂停运行，等内存释放后自动继续",
+        "什么都不会发生，limits 只是一个建议值"
+      ],
+      "correct": 0,
+      "explanation": "requests 影响调度（节点放不放得下），limits 影响生死：超出内存上限的容器会被 OOMKill。没有限额的容器是“流氓邻居”，可能吃垮整栋楼，所以生产环境必须逐容器声明限额。B、C、D 都是对限额机制的误解。",
+      "chapter": "courses/kubernetes/04-ops-basics.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "情境：请用声明式方式在集群中部署一个名为 web 的 Nginx 应用：3 个副本、镜像 nginx:1.27，并通过一个 NodePort 类型的 Service 暴露 80 端口。写出完整的 web.yaml（Deployment + Service 写在一个文件）以及部署和验证命令。",
+      "reference": "Deployment 部分：apiVersion: apps/v1、kind: Deployment、metadata.name: web、spec.replicas: 3，容器镜像 nginx:1.27、containerPort: 80\nselector.matchLabels（如 app: web）必须与 template.metadata.labels 完全一致——这是 Deployment 认领 Pod 的规则\nService 部分：kind: Service、type: NodePort、selector 指向同一组标签（app: web）、port: 80 / targetPort: 80\n部署与验证：kubectl apply -f web.yaml，然后 kubectl get all -l app=web 一次看全 deploy/pod/svc\n强调三处标签（template.labels / selector.matchLabels / Service.selector）必须对应，标签错了 = 关系断裂（Pod 成孤儿或流量丢光）",
+      "chapter": "courses/kubernetes/03-core-resources.md"
+    }
+  ]
+}

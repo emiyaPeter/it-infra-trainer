@@ -1,0 +1,127 @@
+{
+  "id": "repair-basics-01",
+  "title": "电脑维修基础测验",
+  "difficulty": "beginner",
+  "module": "repair-basics",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "CrystalDiskInfo 显示硬盘 S.M.A.R.T. 的重映射扇区数（05）出现了非零值，正确的处理是什么？",
+      "options": [
+        "不用管，这是正常的老化现象",
+        "运行碎片整理把扇区整理好",
+        "立即备份数据并更换硬盘",
+        "格式化硬盘就能修复"
+      ],
+      "correct": 2,
+      "explanation": "05（重映射扇区）、C5（待映射扇区）、C6（不可修复扇区）只要出现非零值，就说明盘面开始老化、数据可能丢失——应立即备份数据并更换硬盘，不要等。格式化和碎片整理都不能修复物理坏道。",
+      "chapter": "courses/repair-basics/01-hardware-diagnosis.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "客户想在自己 DDR4 的老主板上插一根 DDR5 内存\"升级\"，可以吗？为什么？",
+      "options": [
+        "可以，DDR5 向下兼容 DDR4",
+        "不可以，两者插槽缺口位置和电气特性都不同，强行插入会损坏内存或主板",
+        "可以，只要频率调成一样",
+        "可以，但只能识别出一半容量"
+      ],
+      "correct": 1,
+      "explanation": "DDR3/DDR4/DDR5 互不兼容：物理插槽缺口位置不同，电压等电气特性也不同，强行插入会损坏硬件。升级内存前要先查主板说明书或用 CPU-Z 确认内存类型，台式机用 DIMM 长条、笔记本用 SO-DIMM 短条。",
+      "chapter": "courses/repair-basics/01-hardware-diagnosis.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "机械硬盘工作时发出\"咔嗒咔嗒\"的异响，这通常意味着什么？",
+      "options": [
+        "风扇碰到线缆了，整理线缆即可",
+        "正常读写声，机械盘都这样",
+        "磁头可能损坏、硬盘即将彻底损坏的明确信号，应立即备份数据",
+        "系统垃圾太多，清理一下就好"
+      ],
+      "correct": 2,
+      "explanation": "\"咔嗒咔嗒\"是磁头反复尝试读取失败的声音，是机械硬盘即将彻底损坏的明确信号。要立即备份重要数据，之后每次通电都可能造成更多损坏；千万不要拆开硬盘外壳（普通环境灰尘会直接毁掉盘片）。",
+      "chapter": "courses/repair-basics/02-common-faults.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "硬盘出现故障征兆（读取缓慢、文件损坏），以下哪个操作是第一优先级？",
+      "options": [
+        "立即运行 chkdsk /f 强行修复坏道",
+        "立即备份最重要的数据",
+        "反复重启看能不能\"好起来\"",
+        "拆开硬盘检查磁头"
+      ],
+      "correct": 1,
+      "explanation": "数据恢复优先级：第 1 优先永远是立即备份最重要的数据，然后才是检查修复、考虑换盘。强行 chkdsk /f 可能加重损坏，继续写入新数据可能覆盖可恢复的数据，反复重启和拆盘更是大忌。",
+      "chapter": "courses/repair-basics/02-common-faults.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "Windows 蓝屏显示停止代码 MEMORY_MANAGEMENT，应该最先排查哪个部件？",
+      "options": [
+        "显卡驱动",
+        "内存（重新插拔擦金手指，再跑 mdsched.exe 内存诊断）",
+        "CPU 针脚",
+        "音箱和外设"
+      ],
+      "correct": 1,
+      "explanation": "MEMORY_MANAGEMENT 指向内存故障：先关机断电重新插拔内存并用橡皮擦擦拭金手指，再运行 Windows 自带的内存诊断 mdsched.exe，必要时单根测试定位坏内存。IRQL_NOT_LESS_OR_EQUAL、PAGE_FAULT_IN_NONPAGED_AREA 等代码也常与内存相关。",
+      "chapter": "courses/repair-basics/03-boot-troubleshooting.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "电脑正常启动就蓝屏，但能进安全模式且运行稳定。这最说明什么？",
+      "options": [
+        "CPU 损坏了",
+        "问题大概率是第三方驱动或软件引起的，不是硬件故障",
+        "硬盘马上要坏了",
+        "电源功率不足"
+      ],
+      "correct": 1,
+      "explanation": "安全模式只加载基本驱动和服务，能正常运行说明基础硬件和系统核心没问题，嫌疑集中在驱动/软件——进安全模式卸载最近安装的驱动和软件即可。另外 80% 的蓝屏与\"最近做了什么\"（新软件、驱动更新、新硬件）有关。",
+      "chapter": "courses/repair-basics/03-boot-troubleshooting.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "给客户的电脑做系统维护，关于 SSD 固态硬盘的碎片整理，正确的说法是？",
+      "options": [
+        "每月做一次碎片整理，保持性能",
+        "SSD 千万不要做碎片整理——大量不必要的写入会缩短寿命，Windows 会自动对 SSD 执行 TRIM",
+        "SSD 和 HDD 一样都需要定期碎片整理",
+        "碎片整理前要先格式化"
+      ],
+      "correct": 1,
+      "explanation": "碎片整理（defrag）是针对机械硬盘的优化；SSD 工作原理不同，做碎片整理会导致大量不必要的写入、缩短寿命。Windows 10/11 会自动识别 SSD 并执行 TRIM 优化，不需要手动操作。",
+      "chapter": "courses/repair-basics/04-preventive-maintenance.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "\"3-2-1 备份法则\"中，数字 1 指的是什么？",
+      "options": [
+        "每天至少备份 1 次",
+        "只保留 1 份备份",
+        "至少 1 份异地备份（防止火灾、盗窃等物理灾害）",
+        "用 1 块硬盘存所有数据"
+      ],
+      "correct": 2,
+      "explanation": "3-2-1 法则：3 = 至少 3 份数据副本（1 原件 + 2 备份）；2 = 使用 2 种不同存储介质（如本地硬盘 + 云存储）；1 = 至少 1 份异地备份，防止火灾/盗窃等物理灾害。例如电脑原件 + 移动硬盘自动备份 + OneDrive 云同步。",
+      "chapter": "courses/repair-basics/04-preventive-maintenance.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "客户的 Windows 电脑频繁蓝屏，停止代码是 NTFS_FILE_SYSTEM，且怀疑系统文件也受损。请按顺序写出你会运行的检测/修复命令，并说明每条命令的作用和注意事项。",
+      "reference": "要点：① 动手修复前先确认重要数据已备份（数据恢复第一优先）；② wmic diskdrive get status 或 CrystalDiskInfo 查看 S.M.A.R.T. 健康状态，NTFS_FILE_SYSTEM 指向硬盘/文件系统问题；③ chkdsk C: /f /r——/f 修复文件系统错误、/r 查找坏扇区（耗时长，注意盘有物理坏道时不要强行修复）；④ sfc /scannow——检查并修复 Windows 系统文件；⑤ DISM /Online /Cleanup-Image /RestoreHealth——sfc 修不好时先修复系统映像源，再跑一次 sfc；⑥ 事后可用\"查看可靠性历史记录\"或 BlueScreenView 分析 C:\\Windows\\Minidump 下的转储文件确认根因。",
+      "chapter": "courses/repair-basics/03-boot-troubleshooting.md"
+    }
+  ]
+}

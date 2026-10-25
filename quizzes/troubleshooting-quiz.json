@@ -195,6 +195,13 @@
         "spooler"
       ],
       "explanation": "Print Spooler（打印后台处理程序）管理所有打印作业。命令 'net stop spooler' 停止它，然后可以安全地删除 C:\\Windows\\System32\\spool\\PRINTERS\\ 下的卡住文件。"
+    },
+    {
+      "id": "q16",
+      "type": "short-answer",
+      "question": "问答：服务器突然变慢，你登录后发现 load average 很高但 CPU idle 并不低。描述你的分诊步骤（至少 3 步）并说明每步看什么。",
+      "reference": "要点（体现分诊顺序）：\n① 先看 load 高的来源：top / vmstat — 区分 CPU 型（us/sy 高）与 IO 等待型（wa 高、si/so 换页）\n② wa 高 → iostat -x 找 %util 高、await 大的磁盘；dmesg 看磁盘报错\n③ 找到责任进程：top 按 RES/%CPU 排序、ps aux --sort、pidstat 定位\n④ 检查内存压力：free -m、si/so 是否持续非零（swap 颠簸）\n⑤ 取证后再决策：限流/重启/扩容，并保留现场（日志、sar 历史）",
+      "chapter": "courses/troubleshooting/03-system-troubleshooting.md"
     }
   ]
 }

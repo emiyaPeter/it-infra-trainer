@@ -1,0 +1,127 @@
+{
+  "id": "virtualization-01",
+  "title": "虚拟化测验",
+  "difficulty": "beginner",
+  "module": "virtualization",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "VirtualBox 和 VMware Workstation 属于哪种类型的 Hypervisor？它们与 ESXi 的本质区别是什么？",
+      "options": [
+        "Type 1（裸机型），直接运行在物理硬件上，性能接近物理机",
+        "Type 2（托管型），运行在操作系统之上，性能有损耗；而 ESXi 是 Type 1",
+        "既是 Type 1 又是 Type 2，可以按需切换",
+        "它们不是 Hypervisor，而是容器运行时"
+      ],
+      "correct": 1,
+      "explanation": "Type 1（裸机）直接跑在硬件上，代表 ESXi、KVM、Hyper-V，性能接近物理机；Type 2（托管）跑在操作系统上，代表 VirtualBox、VMware Workstation，有性能损耗。二者是不同的架构类型，不能切换；它们都是虚拟化软件，与容器技术无关。",
+      "chapter": "courses/virtualization/01-concepts.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "关于资源超分（Overcommit），课程给出的经验比例是什么？",
+      "options": [
+        "CPU 按 3:1 ~ 5:1 超分，内存不超过物理总量",
+        "CPU 可以无限超分，反正 VM 不会同时用满",
+        "内存也可以任意倍数超分，不会带来风险",
+        "超分只对 Type 2 Hypervisor 有意义，Type 1 不允许超分"
+      ],
+      "correct": 0,
+      "explanation": "物理 24 核可以分配 100+ vCPU，是因为 VM 不会同时用满，但过度超分会导致性能雪崩；课程给出的经验比例是 CPU 3:1~5:1、内存不超过物理总量。超分与 Hypervisor 类型无关，任何类型过度超分都会出问题。",
+      "chapter": "courses/virtualization/01-concepts.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "在 VirtualBox 中，你只想让 VM 能直接访问外网，但不要求局域网里其他设备主动访问它。应选择哪种网络模式？",
+      "options": [
+        "桥接（Bridged）",
+        "Host-Only",
+        "NAT",
+        "内部网络（Internal）"
+      ],
+      "correct": 2,
+      "explanation": "NAT 模式下 VM 可访问外网，但外网无法直接访问 VM（需要端口转发），适合一般上网，也是 VirtualBox 的默认模式。桥接是模拟独立服务器、内外全通；Host-Only 只能与宿主机互通、上不了外网；内部网络完全隔离，连宿主机都不通。",
+      "chapter": "courses/virtualization/02-virtualbox.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "关于 VirtualBox 的快照与克隆，下列说法正确的是？",
+      "options": [
+        "快照是保存当前状态、随时回滚；克隆是复制出一台完全相同的 VM",
+        "快照是复制一台完全相同的 VM；克隆是保存当前状态",
+        "一台 VM 只能拍一个快照，再拍会把之前的覆盖掉",
+        "克隆出来的两台 VM 不能同时开机运行"
+      ],
+      "correct": 0,
+      "explanation": "快照=保存当前状态，随时回滚，典型生产场景是升级前拍快照、失败秒级回滚；克隆=复制一台完全相同的 VM。快照可以拍多个，克隆出的 VM 也是可以同时运行的独立机器。",
+      "chapter": "courses/virtualization/02-virtualbox.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "vSphere 架构中，ESXi 和 vCenter 分别是什么角色？",
+      "options": [
+        "vCenter 直接安装在裸金属服务器上，ESXi 跑在它上面",
+        "ESXi 是直接装在裸金属服务器上的 Type 1 Hypervisor；vCenter 是管理平台，统一管理多台 ESXi 主机",
+        "vCenter 是 ESXi 的免费替代品，两者功能完全相同",
+        "ESXi 只是 vCenter 的一个图形客户端插件"
+      ],
+      "correct": 1,
+      "explanation": "ESXi 是 Type 1 Hypervisor，直接装在裸金属服务器上承载 VM；vCenter 是管理平台，用来统一管理多台 ESXi 主机（如多个集群加共享存储的典型架构）。二者是管理与被管理的关系，不是替代关系，也不是插件关系。",
+      "chapter": "courses/virtualization/03-vmware.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "vSphere 中，某台 ESXi 主机突然故障，其上的 VM 在集群中其他主机上自动重启——这是哪个功能？",
+      "options": [
+        "vMotion",
+        "DRS",
+        "HA",
+        "FT"
+      ],
+      "correct": 2,
+      "explanation": "HA（高可用）：主机故障后，VM 在集群其他主机上自动重启。vMotion 是在线迁移，用于主机维护前把运行中的 VM 迁走、零停机；DRS 是自动负载均衡，负载高时自动迁移 VM；FT 是双机同步运行、零中断的容错。",
+      "chapter": "courses/virtualization/03-vmware.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "在 Linux 上执行 egrep -c '(vmx|svm)' /proc/cpuinfo 检查 CPU 虚拟化支持，其中 vmx 和 svm 分别代表什么？",
+      "options": [
+        "vmx 是 Intel CPU 的虚拟化标志，svm 是 AMD CPU 的虚拟化标志，统计结果大于 0 表示支持虚拟化",
+        "vmx 和 svm 是两种虚拟内存交换技术",
+        "vmx 和 svm 是 KVM 的两个内核模块名称",
+        "vmx 和 svm 是 qemu 的版本号，数字越大版本越新"
+      ],
+      "correct": 0,
+      "explanation": "vmx 对应 Intel、svm 对应 AMD 的硬件虚拟化标志，egrep -c 的输出大于 0 表示该 CPU 支持 KVM 虚拟化。它们与内存交换技术、内核模块名或版本号都无关。",
+      "chapter": "courses/virtualization/04-kvm-cloud.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "使用 virsh 管理 KVM 虚拟机时，想同时列出运行中和已关机的全部 VM，应该用哪条命令？",
+      "options": [
+        "virsh ps -a",
+        "virsh list --all",
+        "virsh domlist",
+        "virsh dumpxml vm-name"
+      ],
+      "correct": 1,
+      "explanation": "virsh list --all 列出所有 VM（包括已关机的）；不带 --all 的 virsh list 只显示运行中的。virsh 没有 ps 和 domlist 子命令；dumpxml 是导出某台 VM 的 XML 配置。",
+      "chapter": "courses/virtualization/04-kvm-cloud.md"
+    },
+    {
+      "id": "q9",
+      "type": "short-answer",
+      "question": "情境：同事问你：\"公司机房服务器上装的 ESXi，和我自己电脑上装的 VirtualBox，是不是一回事？\"请用课程所学回答：Type 1 与 Type 2 Hypervisor 各自的运行位置、代表产品和性能差异是什么？为什么企业数据中心和个人学习会做出不同的选择？",
+      "reference": "要点：1) 二者都是 Hypervisor：在同一台物理机上模拟 CPU、内存、磁盘、网卡，同时运行多台 VM；2) Type 1（裸机型）直接运行在物理硬件上，代表产品 ESXi、KVM、Hyper-V，性能接近物理机；3) Type 2（托管型）运行在操作系统之上，代表产品 VirtualBox、VMware Workstation，性能有损耗；4) 企业数据中心选 Type 1：性能和稳定性更好，还能按 CPU 3:1~5:1、内存不超过物理总量的经验比例做超分，提高硬件利用率；5) 个人学习选 Type 2：免费、安装简单、不改动硬件环境，适合做实验。",
+      "chapter": "courses/virtualization/01-concepts.md"
+    }
+  ]
+}

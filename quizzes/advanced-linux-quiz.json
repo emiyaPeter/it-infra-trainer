@@ -1,0 +1,127 @@
+{
+  "id": "advanced-linux-01",
+  "title": "Linux 进阶测验",
+  "difficulty": "beginner",
+  "module": "advanced-linux",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "uptime 输出中的 load average（平均负载）实际上衡量的是什么？",
+      "options": [
+        "CPU 使用率的百分比",
+        "等待 CPU 和等待 IO 的任务数",
+        "正在使用内存的总量",
+        "系统当前登录的用户数"
+      ],
+      "correct": 1,
+      "explanation": "load average = 等 CPU + 等 IO 的任务数（Linux 含不可中断 IO 等待）。它不是 CPU 使用率——CPU 100% 不一定是坏事，队列变长才是\"慢\"的本质。判读要相对核数（nproc）：负载约等于核数算健康，超过核数两倍就有拥塞。",
+      "chapter": "courses/advanced-linux/01-performance.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "vmstat 输出中 wa（CPU 等 IO 的空闲占比）很高、b（卡在 IO 的任务数）也多，说明瓶颈在哪里？",
+      "options": [
+        "CPU 不够用，该升级 CPU",
+        "内存不够开始换页",
+        "磁盘 IO 堵了，下一步用 iostat 查哪块盘",
+        "网络带宽被占满"
+      ],
+      "correct": 2,
+      "explanation": "b 多 + wa 高是典型的 IO 型瓶颈：CPU 大量时间在等磁盘，问题在磁盘不在 CPU。下一步用 iostat -xz 看 await 和 %util 确认哪块盘饱和，再用 pidstat -d 1 找出打爆磁盘的进程。若怀疑内存，看的应是 si/so 是否非零。",
+      "chapter": "courses/advanced-linux/01-performance.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "凌晨三点服务器出过一次性能事故，但你早上才上班。哪个工具能帮你\"还原现场\"？",
+      "options": [
+        "top，实时查看进程",
+        "sar，回看历史采样数据",
+        "vmstat，每 2 秒采样 CPU",
+        "uptime，看当前负载"
+      ],
+      "correct": 1,
+      "explanation": "sar 的杀手锏是历史数据：sysstat 会定时采样，sar -u/-r/-d/-q 分别能回看 CPU、内存、磁盘、负载的历史曲线，案发时不在现场也能还原。top、vmstat、uptime 都只能看\"现在\"，前提是平时就让 sysstat 跑着积累基线。",
+      "chapter": "courses/advanced-linux/01-performance.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "一个 Java 进程无声消失，应用日志没有任何报错就戛然而止。排查的第一步应该是什么？",
+      "options": [
+        "重装 Java 运行环境",
+        "先查内核日志确认是否被 OOM Killer 杀掉（dmesg -T | grep -i \"out of memory\"）",
+        "立即重启服务器看会不会复发",
+        "检查磁盘剩余空间"
+      ],
+      "correct": 1,
+      "explanation": "进程无声消失先查 OOM：物理内存耗尽时内核会挑进程杀掉腾内存，被杀进程没有遗言，证据在内核日志里（dmesg 或 journalctl -k）。\"被系统处决\"和\"自己崩溃\"的处理方向完全不同——dmesg 一分钟就能定案，不该先盲目重启。",
+      "chapter": "courses/advanced-linux/02-process-debug.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "磁盘满了，你 rm 删掉了一个大日志文件，但 df 显示空间并没有回来。原因和对策是？",
+      "options": [
+        "df 有缓存，等几分钟就会刷新",
+        "文件被删了但仍有进程握着它的句柄；用 lsof | grep deleted 找到进程，重启它才真正释放",
+        "rm 只做了标记，需要再跑一次 sync",
+        "磁盘坏了，需要立即更换"
+      ],
+      "correct": 1,
+      "explanation": "Linux 允许\"删了但没释放\"：只要还有进程持有已删文件的句柄，空间就不还。lsof | grep deleted 能找到真凶，让该进程重启或重新打开日志文件后空间才真正释放。这不是 df 缓存问题，也不是磁盘故障。",
+      "chapter": "courses/advanced-linux/02-process-debug.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "想让 journald 日志在服务器重启后依然保留（持久化），正确做法是什么？",
+      "options": [
+        "什么都不用做，journald 默认就永久保存",
+        "把日志重定向到 /tmp 目录",
+        "创建 /var/log/journal 目录并重启 systemd-journald 服务",
+        "定期手动 journalctl > backup.txt"
+      ],
+      "correct": 2,
+      "explanation": "默认 journald 日志存内存/易失目录，重启即丢。生产必开持久化：sudo mkdir -p /var/log/journal，再重启 systemd-journald，看到 /var/log/journal/ 下出现机器 ID 目录即生效。还应在 journald.conf 里配 SystemMaxUse 等上限，防止日志吃满磁盘。",
+      "chapter": "courses/advanced-linux/03-journald-logs.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "事故复盘时只想看\"错误及以上级别\"的系统日志，正确的 journalctl 用法是？",
+      "options": [
+        "journalctl -p err",
+        "journalctl -f",
+        "journalctl -n 200",
+        "journalctl -o json-pretty"
+      ],
+      "correct": 0,
+      "explanation": "-p err 表示只看 err 及更严重级别（数字等价 -p 3）。-f 是实时追踪，-n 200 是看末尾 200 条，-o json-pretty 是结构化输出——它们都不筛级别。事故还原的标准操作是 --since/--until 圈定区间，再 -u 拉入相关服务，-p err 先看错误。",
+      "chapter": "courses/advanced-linux/03-journald-logs.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "SSH 加固\"三板斧\"的正确操作顺序是什么？",
+      "options": [
+        "先禁用密码登录，再配置密钥，最后装 fail2ban",
+        "先配置密钥登录并用新终端验证可用，再禁用密码登录，再上 fail2ban",
+        "三个步骤随便什么顺序，效果一样",
+        "只装 fail2ban 就够了，其他不必做"
+      ],
+      "correct": 1,
+      "explanation": "顺序错了会把自己锁在门外：必须先生成密钥、ssh-copy-id 装到服务器，并验证新终端能免密登录，之后才能把 PasswordAuthentication 改为 no，最后装 fail2ban 自动拉黑爆破 IP。改 sshd_config 前还要跑 sshd -t 做语法检查，并保持旧会话不退出。",
+      "chapter": "courses/advanced-linux/04-hardening.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "一台 4 核 Web 服务器突然响应很慢，uptime 显示 load average 是 9.20、7.10、5.30。请写出你前几分钟\"分诊\"要用的核心命令（按顺序），并说明每条命令分别看什么指标。",
+      "reference": "要点：① uptime 已看到负载远超 4 核且 1 分钟 > 15 分钟 = 正在恶化；② vmstat 2 5 做总览分诊：r 高→CPU 型、b 多/wa 高→IO 型、si/so 非零→内存型；③ iostat -xz 2 3 看 await 和 %util 确认哪块盘饱和（机械盘 await>20、SSD>10 警惕，%util 长期>80% 饱和）；④ free -m 看 available（不是 free 列）确认内存；⑤ top 按 P/M 排序或 pidstat -d 1 锁定\"哪个进程\"；⑥ 得出结论：CPU/IO/内存/其他，进入对应分支处置。",
+      "chapter": "courses/advanced-linux/01-performance.md"
+    }
+  ]
+}

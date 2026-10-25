@@ -38,6 +38,8 @@ const CHECK_FILES = [
   'src/cli/commands/export-progress.js',
   'src/cli/commands/ask.js',
   'src/server/auth-server.js',
+  'scripts/validate-quizzes.js',
+  'docs/.vitepress/theme/utils/chapters.js',
   'docs/quiz/index.md',
   'docs/.vitepress/theme/components/QuizWidget.vue',
 ];
@@ -66,7 +68,7 @@ console.log('');
 console.log('🧪 IT 培训助手冒烟自检');
 console.log('─'.repeat(50));
 
-console.log('\n[1/3] 语法检查（node --check；.vue/.md 检存在，编译由构建步骤覆盖）');
+console.log('\n[1/4] 语法检查（node --check；.vue/.md 检存在，编译由构建步骤覆盖）');
 for (const f of CHECK_FILES) {
   if (!fs.existsSync(path.join(ROOT, f))) { bad(`文件缺失: ${f}`); continue; }
   if (!f.endsWith('.js')) { ok(`${f} (存在)`); continue; }
@@ -74,12 +76,15 @@ for (const f of CHECK_FILES) {
   r.status === 0 ? ok(f) : bad(`${f} :: ${r.stderr.slice(0, 200)}`);
 }
 
-console.log('\n[2/3] CLI 冒烟');
+console.log('\n[2/4] CLI 冒烟');
 for (const [entry, args] of SMOKE_CLI) {
   run(process.execPath, [entry, ...args], `node ${entry} ${args.join(' ')}`);
 }
 
-console.log('\n[3/3] 生产构建（vitepress build）');
+console.log('\n[3/4] 题库校验（quizzes/ 全量：结构/chapter 锚点/题型/查重）');
+run(process.execPath, ['scripts/validate-quizzes.js'], 'node scripts/validate-quizzes.js');
+
+console.log('\n[4/4] 生产构建（vitepress build）');
 if (SKIP_BUILD) {
   ok('已跳过（SKIP_BUILD=1）');
 } else {

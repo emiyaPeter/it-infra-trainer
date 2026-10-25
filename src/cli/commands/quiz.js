@@ -34,6 +34,7 @@ async function runSingleQuiz(quiz) {
 
   let correctCount = 0;
   const userAnswers = [];
+  let gradedCount = 0; // 参与计分的题数（主观题 CLI 跳过，见下）
 
   for (let i = 0; i < quiz.questions.length; i++) {
     const q = quiz.questions[i];
@@ -45,6 +46,7 @@ async function runSingleQuiz(quiz) {
     let answer;
 
     if (q.type === 'multiple-choice') {
+      gradedCount++;
       const response = await inquirer.prompt([
         {
           type: 'list',
@@ -67,6 +69,7 @@ async function runSingleQuiz(quiz) {
         console.log(`  ${chalk.red('❌ 错误!')} 正确答案是: ${chalk.green(String.fromCharCode(65 + q.correct) + '. ' + correctOpt)}`);
       }
     } else if (q.type === 'fill-blank') {
+      gradedCount++;
       const response = await inquirer.prompt([
         {
           type: 'input',
@@ -86,6 +89,12 @@ async function runSingleQuiz(quiz) {
       } else {
         console.log(`  ${chalk.red('❌ 错误!')} 正确答案是: ${chalk.green(q.correct)}`);
       }
+    } else {
+      // 问答题/实操题：AI 判卷只在 Web 端（BYOK），CLI 跳过不计分
+      userAnswers.push('(skipped)');
+      console.log(chalk.yellow('  ⏭ CLI 跳过主观题（不计分）——到网页版「随堂测验」由 AI 判卷，或对照参考答案自评:'));
+      console.log(chalk.gray(`     参考答案要点: ${q.reference}`));
+      continue;
     }
 
     if (q.explanation) {
@@ -94,8 +103,8 @@ async function runSingleQuiz(quiz) {
     console.log('');
   }
 
-  // Score
-  const score = Math.round((correctCount / quiz.questions.length) * 100);
+  // Score（分母只算参与计分的客观题）
+  const score = gradedCount ? Math.round((correctCount / gradedCount) * 100) : 0;
   const grade =
     score >= 90 ? chalk.green('🏆 优秀!')
     : score >= 70 ? chalk.green('👍 良好')
@@ -104,7 +113,10 @@ async function runSingleQuiz(quiz) {
 
   console.log(chalk.gray('─'.repeat(55)));
   console.log('');
-  console.log(`  得分: ${chalk.bold(score + '%')}  (${correctCount}/${quiz.questions.length})`);
+  if (gradedCount < quiz.questions.length) {
+    console.log(chalk.gray(`  （${quiz.questions.length - gradedCount} 道主观题已跳过，未计入分数）`));
+  }
+  console.log(`  得分: ${chalk.bold(score + '%')}  (${correctCount}/${gradedCount})`);
   console.log(`  评价: ${grade}`);
   console.log('');
 

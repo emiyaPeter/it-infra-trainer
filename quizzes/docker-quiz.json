@@ -1,0 +1,127 @@
+{
+  "id": "docker-01",
+  "title": "Docker 测验",
+  "difficulty": "beginner",
+  "module": "docker",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "关于容器和虚拟机的本质区别，课程强调的正确理解是什么？",
+      "options": [
+        "容器就是一种轻量级虚拟机，每个容器里都跑着完整的操作系统",
+        "容器不是\"轻量虚拟机\"，它是被命名空间（namespace）和 cgroup 限制的 Linux 进程，共享宿主机内核",
+        "容器拥有独立内核，隔离程度比虚拟机更彻底",
+        "容器和虚拟机的资源开销差不多，\"轻量\"只是营销说法"
+      ],
+      "correct": 1,
+      "explanation": "课程原话：容器不是\"轻量虚拟机\"——它是被命名空间(namespace)和 cgroup 限制的 Linux 进程。虚拟机每个都有完整 OS、完全隔离、GB 级磁盘占用；容器是进程级隔离、MB 级占用、秒级启动，靠共享 Host 内核实现高密度。",
+      "chapter": "courses/docker/01-container-concepts.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "同一台机器上运行 10 个基于同一个 Nginx 镜像的容器，磁盘占用情况是怎样的？",
+      "options": [
+        "每个容器都完整复制一份镜像，占用约 10 倍的磁盘空间",
+        "10 个容器共享同一个 Nginx 镜像层，节省约 99% 的磁盘",
+        "从第 2 个容器开始，每个只占一半空间",
+        "容器必须使用各不相同的镜像，无法共享"
+      ],
+      "correct": 1,
+      "explanation": "镜像是分层的：Base 层和中间层只读，容器只带一个自己的可写层。同一台机器上的多个容器共享同一份只读镜像层，课程给出的结论是 10 个 Nginx 容器共享同一个镜像层、节省 99% 磁盘，并不需要每个容器复制整个镜像。",
+      "chapter": "courses/docker/01-container-concepts.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "命令 docker run -d -p 8080:80 --name my-nginx nginx 中，-p 8080:80 的含义是什么？",
+      "options": [
+        "把主机的 8080 端口映射到容器的 80 端口，访问 localhost:8080 就是访问容器内的 Nginx",
+        "把容器的 8080 端口映射到主机的 80 端口",
+        "让这个容器通过 8080 和 80 两个端口与其他容器互联",
+        "限制该容器的网络带宽为 8080 Mbps"
+      ],
+      "correct": 0,
+      "explanation": "-p 的格式是\"主机端口:容器端口\"，8080:80 即主机 8080 到容器 80，所以 curl http://localhost:8080 能看到 Nginx 欢迎页。映射方向写反是初学者最常见的错误；它也不负责容器互联或带宽限制。",
+      "chapter": "courses/docker/02-docker-basics.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "想在运行中的 db 容器里打开一个交互式 shell（或直接执行 mysql 客户端），应该用哪条命令？",
+      "options": [
+        "docker ssh db",
+        "docker attach db",
+        "docker exec -it db bash",
+        "docker enter db"
+      ],
+      "correct": 2,
+      "explanation": "docker exec -it 容器名 bash 会在运行中的容器里启动一个交互式 shell，课程用它进入 MySQL 容器执行客户端（docker exec -it db mysql -uroot -ppass123）。docker attach 是接入容器主进程的输入输出，不是开新 shell；docker 没有 ssh 和 enter 子命令。",
+      "chapter": "courses/docker/02-docker-basics.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "Dockerfile 里为什么先写 COPY package*.json ./ 和 RUN npm ci --production，最后才 COPY . .？",
+      "options": [
+        "Dockerfile 语法规定指令必须按字母顺序书写",
+        "利用构建缓存：不常变的依赖文件放前面，日常只改源码时依赖安装层直接命中缓存，不必重新执行 npm ci",
+        "先复制小文件可以让构建速度成倍提升",
+        "因为 package.json 不能和源码放在同一个镜像层里"
+      ],
+      "correct": 1,
+      "explanation": "Docker 按层做构建缓存：某层的输入没变就直接复用。先 COPY 不常变的 package*.json 并安装依赖，改动源码时依赖层命中缓存不必重装；如果一开始就 COPY . .，任何源码改动都会让后面的依赖安装层全部失效重建。这与指令的字母顺序或文件大小无关。",
+      "chapter": "courses/docker/03-dockerfile.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "按照课程的 Dockerfile 最佳实践，下列哪一项做法是正确的？",
+      "options": [
+        "选用 node:18-alpine 这类小体积基础镜像（约 50MB），并用 USER 指令切换到非 root 用户运行",
+        "为了排查问题方便，直接用 root 用户运行容器",
+        "把 .env 密钥文件 COPY 进镜像，运行时读取更方便",
+        "把编译阶段的全部工具链保留在最终镜像里，方便以后调试"
+      ],
+      "correct": 0,
+      "explanation": "课程最佳实践：使用 alpine 版基础镜像（node:18-alpine 约 50MB，远小于完整版 350MB），并用 USER 切换非 root 运行。密钥不能打进镜像，应用 .dockerignore 排除 .env；编译工具应通过多阶段构建留在编译阶段，运行镜像只复制产物。",
+      "chapter": "courses/docker/03-dockerfile.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "docker-compose.yml 中 web 服务写了 depends_on: [db, redis]，它的作用是什么？",
+      "options": [
+        "当 db 或 redis 崩溃时自动重启 web 服务",
+        "自动把 db 的数据卷挂载给 web 服务",
+        "让 web 可以免密连接 db 和 redis",
+        "控制启动顺序：docker compose up 时先启动 db 和 redis，再启动 web"
+      ],
+      "correct": 3,
+      "explanation": "depends_on 声明依赖关系，决定启动顺序：web 会在 db 和 redis 之后启动。它不负责依赖服务崩溃时的自动重启，也不挂载数据卷、不传递账号密码；服务之间的访问靠服务名走 compose 网络（如 web 的 environment 里写 DB_HOST: db）。",
+      "chapter": "courses/docker/04-docker-compose.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "使用 Docker Compose 时，后台启动整套服务栈、以及停止并清理它们的命令分别是什么？",
+      "options": [
+        "docker compose start 和 docker compose delete",
+        "docker compose up -d 和 docker compose down",
+        "docker run all 和 docker stop all",
+        "docker compose up 和 docker rm"
+      ],
+      "correct": 1,
+      "explanation": "docker compose up -d 按 YAML 文件后台启动所有服务，docker compose down 停止并清理整套服务栈。compose 没有 delete 子命令，也不存在 docker run all；docker rm 只能逐个删容器，无法替代 compose 的整体清理。",
+      "chapter": "courses/docker/04-docker-compose.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "情境：你要在本地用 Docker 起一个 MySQL 8 数据库做实验。要求：容器名为 db、后台运行、把主机 3306 映射到容器 3306、通过环境变量 MYSQL_ROOT_PASSWORD 把 root 密码设为 pass123、镜像用 mysql:8。请写出：1) 启动容器的完整命令；2) 在该容器里执行 mysql 客户端（用 root/pass123 登录）的命令。",
+      "reference": "要点：1) 启动：docker run -d -p 3306:3306 --name db -e MYSQL_ROOT_PASSWORD=pass123 mysql:8；2) 各参数含义：-d 后台运行、-p 主机端口:容器端口、--name 指定容器名、-e 注入环境变量；3) 执行客户端：docker exec -it db mysql -uroot -ppass123；4) 验证：docker ps 查看运行状态，docker stats 查看资源占用。",
+      "chapter": "courses/docker/02-docker-basics.md"
+    }
+  ]
+}

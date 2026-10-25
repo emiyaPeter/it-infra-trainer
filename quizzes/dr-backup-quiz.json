@@ -1,0 +1,127 @@
+{
+  "id": "dr-backup-01",
+  "title": "备份与灾备测验",
+  "difficulty": "beginner",
+  "module": "dr-backup",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "RPO（恢复点目标）衡量的是什么？",
+      "options": [
+        "最多能接受丢失多少数据，如 RPO=1 小时表示最多丢 1 小时内的变更",
+        "最多能接受停机多久，如 4 小时内必须恢复服务",
+        "磁盘阵列的容量利用率",
+        "恢复手册的页数多少"
+      ],
+      "correct": 0,
+      "explanation": "RPO 管'丢多少数据'，它决定备份频率；RTO 才是管'停多久'，它决定恢复方案。方案设计的第一步就是先和业务方对齐这两个数字，再谈技术选型。C/D 与 RPO 完全无关。",
+      "chapter": "courses/dr-backup/01-backup-strategy.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "3-2-1 备份原则的正确含义是什么？",
+      "options": [
+        "3 个机房、2 份全量备份、1 小时内完成",
+        "3 份数据（1 份生产 + 2 份备份）、2 种介质、其中 1 份异地",
+        "每天备份 3 次、保留 2 周、1 个人负责",
+        "3 块硬盘、做 RAID 2、再存 1 份到云端"
+      ],
+      "correct": 1,
+      "explanation": "3-2-1 是行业黄金标准：3 份数据、2 种介质（如磁盘 + 磁带/NAS/对象存储）、1 份异地——防火灾水灾勒索的最后底牌。勒索时代'异地'还最好是离线或不可变存储，其余选项都是望文生义。",
+      "chapter": "courses/dr-backup/01-backup-strategy.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "服务器做了 RAID。某天管理员误删了整个数据库目录（或被勒索软件加密），RAID 能把数据救回来吗？",
+      "options": [
+        "能，RAID 会自动保留历史版本副本",
+        "不能，RAID 只防'盘坏'，误删/勒索会同步到所有成员盘",
+        "能，只要再插一块新硬盘就可以",
+        "不能，但重新创建一次 RAID 数据就回来了"
+      ],
+      "correct": 1,
+      "explanation": "这是必考点：RAID 防'盘坏'，备份防'数据坏'。误删、勒索加密、删除逻辑卷这类逻辑错误会被 RAID 原样同步到每块盘，只能靠备份（最好是不可变/离线那份）恢复。'有 RAID 就不用备份'是血泪榜第一名误区。",
+      "chapter": "courses/dr-backup/02-raid-ha.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "为数据库和虚拟化平台选 RAID，要求性能和数据安全兼顾，课程推荐的主流首选是？",
+      "options": [
+        "RAID 0",
+        "RAID 5",
+        "RAID 10",
+        "不做 RAID 用单盘"
+      ],
+      "correct": 2,
+      "explanation": "RAID 10 先镜像后条带，性能与安全兼得，容量利用率 50%，是数据库、虚拟化的典型首选。RAID 0 虽快但坏一块盘数据全失，只适合可丢的临时数据；RAID 5 在 TB 级大盘时代因重建风险已趋淘汰；单盘没有任何冗余。",
+      "chapter": "courses/dr-backup/02-raid-ha.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "Keepalived 主备两台机器间心跳中断、但两台都活着，结果两边都认为自己是主节点，VIP 冲突甚至数据双写。这种现象叫什么？",
+      "options": [
+        "脑裂（Split-Brain）",
+        "负载均衡（Load Balancing）",
+        "热备（Hot Standby）",
+        "重建（Rebuild）"
+      ],
+      "correct": 0,
+      "explanation": "这就是脑裂，HA 面试必问：防线包括双心跳链路、仲裁盘/仲裁节点、奇数节点。B 是分摊流量的技术；C 是主备本身的形态；D 是 RAID 坏盘换新盘后补数据的过程，都与此现象无关。",
+      "chapter": "courses/dr-backup/03-lb-failover.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "Nginx 做负载均衡时，如果后端各请求的处理耗时差异很大，哪种调度算法分配更公平？",
+      "options": [
+        "轮询（round robin）",
+        "最少连接（least_conn）",
+        "源地址哈希（ip_hash）",
+        "按服务器名字母顺序"
+      ],
+      "correct": 1,
+      "explanation": "least_conn 把新请求发给当前连接数最少的后端，处理慢的机器自然少接新活，耗时不均时更公平。轮询不分忙闲依次分配会失衡；ip_hash 的目的是让同一客户端固定到同一后端（会话保持的土办法），不是为了公平；D 不是调度算法。",
+      "chapter": "courses/dr-backup/03-lb-failover.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "支付类核心系统要求故障时用户'无感切换'，RTO/RPO 都要达到秒级，应选择哪种灾备等级？",
+      "options": [
+        "冷备",
+        "热备",
+        "双活",
+        "每天做一次备份就够了"
+      ],
+      "correct": 2,
+      "explanation": "双活是两地同时服务、流量分担、无感切换，RTO/RPO 秒级，成本也最高，适合支付/交易。热备是分钟级（出事才切），冷备是天级（出事再装系统）；不是所有系统都值得双活，'分级'才是灾备规划的第一动作。",
+      "chapter": "courses/dr-backup/04-dr-plan.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "一份合格的故障恢复手册（Runbook），课程的检验标准是什么？",
+      "options": [
+        "篇幅越长、术语越多越专业",
+        "半夜被叫醒、没有电脑查资料的情况下，照着纸面步骤也能走通",
+        "存在公司 Wiki 里，要用时再搜索",
+        "只写给开发人员看"
+      ],
+      "correct": 1,
+      "explanation": "标准是'半夜裸考可用'：命令写全路径、联系人要有备份人选，并打印存放于离机房足够远的地方。'手册躺在 Wiki 里没打印'恰是常见误区——断网断电时偏偏打不开；手册也不是比篇幅或只给开发看的。",
+      "chapter": "courses/dr-backup/04-dr-plan.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "请为 /var/www/myapp 编写备份脚本 /opt/scripts/backup-app.sh：每天将该目录打包（保留权限）保存到 /backup，文件名带当天日期，同时生成 sha256 校验文件，并自动清理 14 天前的旧备份；再说明如何用 systemd timer 让它每天凌晨 2 点自动执行。",
+      "reference": "要点：① 脚本开头 set -euo pipefail，出错即停，避免备份静默失败半年无人知；② STAMP=$(date +%F)，归档名形如 /backup/myapp-$STAMP.tar.gz；③ 打包：tar -czpf \"$ARCHIVE\" -C \"$(dirname $SRC)\" \"$(basename $SRC)\"（-p 保留权限）；④ 校验：sha256sum \"$ARCHIVE\" > \"$ARCHIVE.sha256\"，相当于备份完整性的封条；⑤ 清理：find \"$DEST\" -name 'myapp-*.tar.gz*' -mtime +14 -delete；⑥ timer 配置 [Timer] 段 OnCalendar=*-*-* 02:00:00、Persistent=true，[Install] WantedBy=timers.target，然后 systemctl enable --now backup-app.timer；另要强调：备份必须定期抽检恢复（解压到隔离目录验证），'能恢复'比'有备份'重要。",
+      "chapter": "courses/dr-backup/01-backup-strategy.md"
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "id": "security-01",
+  "title": "安全测验",
+  "difficulty": "beginner",
+  "module": "security",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "信息安全中最核心的 CIA 三元组，指的是哪三个属性？",
+      "options": [
+        "机密性、完整性、可用性",
+        "加密、认证、审计",
+        "防火墙、IDS、VPN",
+        "预防、检测、响应"
+      ],
+      "correct": 0,
+      "explanation": "CIA 三元组是所有安全措施的保护对象：机密性（数据只能被授权的人访问）、完整性（数据没有被未授权地修改）、可用性（授权用户需要时可正常访问）。B、C 只是实现安全的具体技术手段，D 是安全运营流程，都不是 CIA 三元组。",
+      "chapter": "courses/security/01-security-concepts.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "在企业网络分段架构中，关于 DMZ（非军事区）的说法，正确的是？",
+      "options": [
+        "对外提供服务的 Web 服务器放在 DMZ，即使被攻破，攻击者也无法直接访问内部数据库",
+        "DMZ 是存放核心数据库的最内层区域",
+        "DMZ 中的服务器可以不受限制地访问内网所有资源",
+        "DMZ 只用来放置运维人员的跳板机"
+      ],
+      "correct": 0,
+      "explanation": "DMZ 是内网和外网之间的隔离区，对外服务的 Web 服务器/反向代理放在这里；内部防火墙会对 DMZ 进入内网的流量严格过滤（仅开放特定端口）。B 错在数据库应放在最深的数据区；C 错在 DMZ 到内网仅允许特定端口；D 错在运维跳板机属于独立的管理区。",
+      "chapter": "courses/security/02-network-security.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "SSH 安全加固中，为什么要禁止 root 直接登录？",
+      "options": [
+        "root 用户名众所周知，容易成为暴力破解目标；改用普通用户登录再 sudo，能留下完整的审计记录",
+        "禁止后系统就无法执行任何管理员操作了",
+        "因为 root 账户没有密码，无法登录",
+        "禁止 root 登录可以显著提升服务器性能"
+      ],
+      "correct": 0,
+      "explanation": "每个攻击者都知道存在 root 这个用户，直接登录减少了暴力破解需要猜测的变量；所有操作通过“普通用户 + sudo”完成，才能形成“谁在什么时间做了什么”的审计链。B 错：需要 root 权限时先以普通用户登录再 sudo -i 即可；C、D 与事实不符。",
+      "chapter": "courses/security/03-system-hardening.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "认证（Authentication）与授权（Authorization）的区别是？",
+      "options": [
+        "认证回答“你是谁”（如密码、MFA），授权回答“你能做什么”（如权限、RBAC），先认证后授权",
+        "两者是同一个概念的不同叫法",
+        "授权发生在认证之前",
+        "认证负责分配权限，授权负责验证密码"
+      ],
+      "correct": 0,
+      "explanation": "认证是证明身份（登录），授权是确定访问范围（权限检查），流程上先认证后授权。B 混淆了两个概念；C 顺序颠倒——不知道身份是谁就无法授权；D 把两者的职责说反了。",
+      "chapter": "courses/security/04-iam.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "关于对称加密与非对称加密的区别，正确的说法是？",
+      "options": [
+        "对称加密加解密用同一个密钥、速度快（如 AES）；非对称加密用公钥加密、私钥解密（如 RSA/ECC），解决了密钥分发问题",
+        "非对称加密速度比对称加密快，所以应全部使用非对称加密",
+        "对称加密使用公钥和私钥两个不同的密钥",
+        "哈希算法（如 SHA-256）加密后可以用私钥解密还原出原文"
+      ],
+      "correct": 0,
+      "explanation": "对称加密快但存在密钥分发难题，非对称安全但慢，现实中两者结合使用：TLS 就是用非对称加密传递对称密钥。B 与事实相反；C 描述的其实是非对称加密；D 错在哈希是单向摘要、不可逆，不存在“解密还原”。",
+      "chapter": "courses/security/05-cryptography.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "运维发现一台在线服务器疑似被入侵，第一件正确的事是？",
+      "options": [
+        "先隔离网络、保留现场，不要慌忙关机（直接断电会丢失内存中的证据）",
+        "立即断电关机，彻底阻止攻击者操作",
+        "立即删除所有可疑文件和后门，清理干净再说",
+        "什么都不做，等攻击者自己离开"
+      ],
+      "correct": 0,
+      "explanation": "正确步骤是：隔离网络 → 保留现场 → 通知上级 → 取证和响应；贸然关机会丢失内存中的关键证据。B 错在取证要在断电前完成；C 错在清除必须放在取证之后，先删除会破坏证据；D 会任由攻击者横向移动、扩大损失。",
+      "chapter": "courses/security/06-soc-ir.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "关于渗透测试，下列说法正确的是？",
+      "options": [
+        "渗透测试是人工模拟真实攻击来验证漏洞能否被利用，且必须在获得目标方书面授权的前提下进行",
+        "渗透测试就是用自动化工具扫描已知漏洞，两者是完全相同的概念",
+        "只要技术足够好，就可以对互联网上任何系统进行渗透测试",
+        "运维人员不应该了解任何攻击手法，知道越多越危险"
+      ],
+      "correct": 0,
+      "explanation": "漏洞扫描是自动化工具查找已知漏洞（广度），渗透测试是人工模拟真实攻击尝试利用漏洞（深度），两者互补而非相同。未经授权对他人系统进行测试属于违法行为；运维学习攻击者思维是为了把防御做在攻击前面，例如理解 SQL 注入就会主动要求应用做参数化查询。",
+      "chapter": "courses/security/07-pentest-basics.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "关于等级保护（等保）与 ISO 27001 的关系，正确的说法是？",
+      "options": [
+        "等保是中国法律要求的网络安全等级保护制度（二级系统需公安备案），ISO 27001 是国际信息安全管理标准，两者互补但不能相互替代",
+        "等保是一个可自由选择参加的国际认证",
+        "系统过了等保一级就需要每年测评一次",
+        "公司取得 ISO 27001 认证后，在中国就无需再做等保"
+      ],
+      "correct": 0,
+      "explanation": "在中国运营必须遵守等保：二级（大多数企业）为指导保护并需公安备案，三级（政府/金融等重要系统）要求每年测评。ISO 27001 侧重管理流程、等保侧重技术控制点，两者可以互补但不能替代。C 错在“每年测评”是三级的要求；D 混淆了两套不同性质的体系。",
+      "chapter": "courses/security/08-compliance.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "情境：公司新上线一台对公网开放的 Linux 服务器，/var/log/auth.log 中出现大量 SSH 暴力破解记录。请写出 /etc/ssh/sshd_config 中至少 3 条安全加固配置并说明各自作用，再说明修改后如何安全地让配置生效（避免把自己锁在服务器外面）。",
+      "reference": "PermitRootLogin no —— 禁止 root 直接登录，减少爆破目标并保留 sudo 审计链\nPasswordAuthentication no + PubkeyAuthentication yes —— 关闭密码认证，仅允许密钥登录\nAllowUsers alice bob（或 MaxAuthTries 3、LoginGraceTime 30）—— 限制可登录用户与登录尝试次数\n配套防护：保留 22 端口配合 fail2ban 自动封禁、限制来源 IP，而不是只靠改端口\n生效步骤：先 sshd -t 检查语法 → systemctl reload sshd 重载 → 另开一个终端验证能正常登录，全程不要断开当前连接；若被锁，通过云厂商控制台/带外管理恢复",
+      "chapter": "courses/security/03-system-hardening.md"
+    }
+  ]
+}

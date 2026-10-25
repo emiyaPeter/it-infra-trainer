@@ -18,7 +18,7 @@
     <div v-if="view === 'pick'">
       <p class="qw-hint">
         测验达标（≥80 分）自动点亮对应模块的全部章节；错过的题自动进错题本。
-        判分规则：选择题本地判分；填空题先比对标准答案，对不上且已配 AI 密钥时交给 AI 判分（判错还会再跑一轮对抗审计）。
+        判分分层：选择题/填空题本地判分（填空对不上再交 AI）；问答/实操题由 AI 判卷（未配密钥时可对照参考答案自评，不计分）。
       </p>
       <div v-if="!currentUser" class="qw-login-hint">
         当前未登录：可以正常做题，但成绩、错题本和达标点亮不会保存。点右上角「注册/登录」后记录会按账户保存。
@@ -29,7 +29,7 @@
           <div class="qw-card-meta">
             <span>{{ difficultyLabel(qz.difficulty) }}</span>
             <span>{{ qz.questions.length }} 题</span>
-            <span v-if="qz.module">🔗 {{ moduleLabel(qz.module) }}</span>
+            <span v-if="qz.module">🔗 {{ moduleTitleOf(qz.module) }}</span>
           </div>
           <div v-if="bestScore(qz.id) !== null" class="qw-card-best" :class="{ 'qw-best-pass': bestScore(qz.id) >= PASS_LINE }">
             最佳 {{ bestScore(qz.id) }} 分{{ isVerified(qz.module) ? ' 🏆' : '' }}
@@ -44,13 +44,13 @@
         <button class="qw-btn qw-btn-ghost" @click="confirmQuit">← 退出</button>
         <span class="qw-progress-title">
           {{ runQuiz.title }} · 第 {{ idx + 1 }} / {{ runQuestions.length }} 题
-          <em v-if="runMode === 'wrong'">（错题重练）</em>
+          <em v-if="isPractice">（练习模式）</em>
         </span>
-        <span class="qw-progress-score">答对 {{ correctCount }}</span>
+        <span class="qw-progress-score">得分 {{ earnedPoints }}<template v-if="countedSoFar"> / {{ countedSoFar }}</template></span>
       </div>
 
       <div class="qw-question">
-        <span class="qw-qtype">{{ currentQ.type === 'multiple-choice' ? '选择题' : '填空题' }}</span>
+        <span class="qw-qtype" :class="{ 'qw-qtype-subj': isSubjective(currentQ) }">{{ typeLabel(currentQ) }}</span>
         <p class="qw-qtext">{{ currentQ.question }}</p>
       </div>
 
@@ -67,7 +67,7 @@
           <span>{{ opt }}</span>
         </button>
       </div>
-      <div v-else class="qw-fill">
+      <div v-else-if="currentQ.type === 'fill-blank'" class="qw-fill">
         <input
           v-model="fillInput"
           class="qw-fill-input"
@@ -77,19 +77,56 @@
         />
         <button class="qw-btn qw-btn-primary" :disabled="answered || grading || !fillInput.trim()" @click="submitFill">提交</button>
       </div>
+      <div v-else class="qw-subjective">
+        <textarea
+          v-model="fillInput"
+          class="qw-textarea"
+          :disabled="answered || grading"
+          rows="5"
+          placeholder="写出你的答案（命令/配置/要点），提交后由 AI 判卷；未配密钥则对照参考答案自评"
+        ></textarea>
+        <div class="qw-subj-actions">
+          <span class="qw-subj-count">{{ fillInput.length }} 字</span>
+          <button class="qw-btn qw-btn-primary" :disabled="answered || grading || !fillInput.trim()" @click="submitSubjective">提交</button>
+        </div>
+      </div>
 
-      <div v-if="grading" class="qw-grading">🤖 AI 判分中，稍等…</div>
+      <div v-if="grading" class="qw-grading">🤖 AI {{ isSubjective(currentQ) ? '判卷' : '判分' }}中，稍等…</div>
 
-      <div v-if="answered" class="qw-feedback" :class="lastJudge.correct ? 'qw-feedback-ok' : 'qw-feedback-no'">
+      <!-- 客观题反馈 -->
+      <div v-if="answered && lastJudge && !lastJudge.selfMode" class="qw-feedback" :class="feedbackClass">
         <div class="qw-feedback-head">
-          <b>{{ lastJudge.correct ? '✅ 回答正确' : '❌ 回答错误' }}</b>
+          <b>{{ feedbackTitle }}</b>
           <span class="qw-judge-src">{{ judgeSrcLabel(lastJudge) }}</span>
         </div>
         <div v-if="currentQ.type === 'fill-blank'" class="qw-your-answer">你的答案：{{ lastAnswerDisplay }}</div>
-        <div v-if="!lastJudge.correct" class="qw-correct-answer">正确答案：{{ correctDisplay(currentQ) }}</div>
-        <p class="qw-explanation">💡 {{ currentQ.explanation }}</p>
+        <div v-if="currentQ.type === 'fill-blank' && !lastJudge.correct" class="qw-correct-answer">正确答案：{{ correctDisplay(currentQ) }}</div>
+        <p v-if="currentQ.explanation" class="qw-explanation">💡 {{ currentQ.explanation }}</p>
+        <div v-if="isSubjective(currentQ)" class="qw-reference">
+          <div class="qw-reference-title">📋 参考答案</div>
+          <p class="qw-reference-body">{{ currentQ.reference }}</p>
+        </div>
         <p v-if="lastJudge.aiReason" class="qw-ai-reason">🤖 {{ lastJudge.aiReason }}</p>
         <button class="qw-btn qw-btn-primary qw-next" @click="nextQuestion">
+          {{ idx < runQuestions.length - 1 ? '下一题 →' : '交卷 🏁' }}
+        </button>
+      </div>
+
+      <!-- 主观题自评反馈（未配密钥 / AI 不可用，不计分） -->
+      <div v-if="answered && lastJudge && lastJudge.selfMode" class="qw-feedback qw-feedback-self">
+        <div class="qw-feedback-head">
+          <b>🟡 自评模式（{{ lastJudge.src === 'self-fallback' ? 'AI 不可用，已自动降级' : '未配 AI 密钥' }}，本题不计分）</b>
+        </div>
+        <div class="qw-your-answer">你的答案：<span class="qw-answer-text">{{ lastAnswerDisplay }}</span></div>
+        <div class="qw-reference">
+          <div class="qw-reference-title">📋 参考答案（对照自评）</div>
+          <p class="qw-reference-body">{{ currentQ.reference }}</p>
+        </div>
+        <div class="qw-self-actions">
+          <button class="qw-btn qw-btn-ok" @click="selfAssess(true)">✅ 我基本答对了</button>
+          <button class="qw-btn qw-btn-danger" @click="selfAssess(false)">❌ 没答好，记入错题本</button>
+        </div>
+        <button class="qw-btn qw-btn-primary qw-next" :disabled="!selfDone" @click="nextQuestion">
           {{ idx < runQuestions.length - 1 ? '下一题 →' : '交卷 🏁' }}
         </button>
       </div>
@@ -102,26 +139,40 @@
       </div>
       <p class="qw-tier">{{ tierText }}</p>
 
-      <div v-if="runMode === 'wrong'" class="qw-note">错题重练模式：不计入成绩，也不重复点亮模块。</div>
-      <template v-else>
-        <div v-if="passed && markedInfo" class="qw-pass-banner">
-          🏆 达标！已自动点亮《{{ moduleLabel(markedInfo.module) }}》模块全部 {{ markedInfo.count }} 章进度。
-        </div>
-        <div v-else-if="runQuiz.module" class="qw-nopass-banner">
-          未到 {{ PASS_LINE }} 分，暂不点亮模块章节。看看下面的错题讲解，然后重考一次。
-        </div>
-      </template>
+      <div v-if="isPractice" class="qw-note">练习模式：不计成绩，也不点亮模块。</div>
+      <div v-else-if="uncountedNote" class="qw-note">{{ uncountedNote }}</div>
+      <div v-if="!isPractice && passed && markedInfo" class="qw-pass-banner">
+        🏆 达标！已自动点亮《{{ moduleTitleOf(markedInfo.module) }}》模块全部 {{ markedInfo.count }} 章进度。
+      </div>
+      <div v-else-if="!isPractice && passed" class="qw-pass-banner">
+        🏆 达标！{{ runQuiz.module ? '该题库未关联章节进度（纯练习题库）。' : '' }}
+      </div>
+      <div v-else-if="!isPractice && runQuiz.module && chapterListOf(runQuiz.module).length" class="qw-nopass-banner">
+        未到 {{ PASS_LINE }} 分，暂不点亮模块章节。看看下面的错题讲解，然后重考一次。
+      </div>
 
       <div v-if="wrongOnes.length" class="qw-wrong-review">
-        <h4>❌ 本次错题讲解（{{ wrongOnes.length }} 题）</h4>
+        <h4>❌ 本次待巩固（{{ wrongOnes.length }} 题）</h4>
         <div v-for="w in wrongOnes" :key="w.q.id" class="qw-wrong-item">
           <p class="qw-wrong-q">{{ w.q.question }}</p>
-          <p class="qw-wrong-ans">你的答案：{{ w.display }} ✗　正确答案：{{ correctDisplay(w.q) }}</p>
-          <p class="qw-explanation">💡 {{ w.q.explanation }}</p>
+          <p class="qw-wrong-ans">
+            {{ w.judge.selfMode ? '自评：没答好' : '你的答案：' + w.display + ' ✗' }}
+            <template v-if="!isSubjective(w.q)">　正确答案：{{ correctDisplay(w.q) }}</template>
+            <template v-if="w.judge.earned > 0">（部分得分 {{ w.judge.earned }}）</template>
+          </p>
+          <p v-if="w.q.explanation" class="qw-explanation">💡 {{ w.q.explanation }}</p>
+          <div v-if="isSubjective(w.q)" class="qw-reference">
+            <div class="qw-reference-title">📋 参考答案</div>
+            <p class="qw-reference-body">{{ w.q.reference }}</p>
+          </div>
+          <a v-if="w.q.chapter" class="qw-backlink" :href="chapterHref(w.q.chapter)">📖 回读：{{ chapterTitleOf(w.q.chapter) }}</a>
         </div>
       </div>
 
-      <div class="qw-result-actions">
+      <div v-if="isPractice" class="qw-result-actions">
+        <button class="qw-btn qw-btn-ghost" @click="goPick">返回题库</button>
+      </div>
+      <div v-else class="qw-result-actions">
         <button class="qw-btn qw-btn-primary" @click="startQuiz(runQuiz, 'full')">重做全套</button>
         <button v-if="wrongOnes.length" class="qw-btn" @click="redoWrongAll">只重做错题</button>
         <button class="qw-btn qw-btn-ghost" @click="goPick">返回题库</button>
@@ -145,12 +196,22 @@
             <span class="qw-wb-meta">×{{ it.times }} 次</span>
           </div>
           <div v-if="it.open" class="qw-wb-detail">
-            <p class="qw-wrong-ans">你的答案：{{ it.myAnswer }} ✗　正确答案：{{ it.correctDisplay }}</p>
-            <p class="qw-explanation">💡 {{ it.explanation }}</p>
-            <button v-if="aiReady" class="qw-btn" :disabled="it.explaining" @click="aiExplain(it)">
-              {{ it.explaining ? '🤖 生成中…' : '🤖 AI 精讲' }}
-            </button>
-            <button v-else class="qw-btn qw-btn-ghost" @click="openAiSettings">🤖 AI 精讲（需先配置密钥）</button>
+            <p class="qw-wrong-ans">
+              你的答案：<span class="qw-answer-text">{{ it.myAnswer }}</span>
+              <template v-if="!it.isSubjective">　正确答案：{{ it.correctDisplay }}</template>
+            </p>
+            <p v-if="it.explanation" class="qw-explanation">💡 {{ it.explanation }}</p>
+            <div v-if="it.reference" class="qw-reference">
+              <div class="qw-reference-title">📋 参考答案</div>
+              <p class="qw-reference-body">{{ it.reference }}</p>
+            </div>
+            <a v-if="it.chapter" class="qw-backlink" :href="chapterHref(it.chapter)">📖 回读：{{ chapterTitleOf(it.chapter) }}</a>
+            <div class="qw-self-actions">
+              <button v-if="aiReady" class="qw-btn" :disabled="it.explaining" @click="aiExplain(it)">
+                {{ it.explaining ? '🤖 生成中…' : '🤖 AI 精讲' }}
+              </button>
+              <button v-else class="qw-btn qw-btn-ghost" @click="openAiSettings">🤖 AI 精讲（需先配置密钥）</button>
+            </div>
             <p v-if="it.aiExplanation" class="qw-ai-reason qw-ai-long">{{ it.aiExplanation }}</p>
           </div>
         </div>
@@ -163,7 +224,7 @@
         <h4>⚙️ AI 判分与精讲（自带密钥）</h4>
         <p class="qw-privacy">
           密钥只保存在<b>你本机浏览器</b>（localStorage），本站代码与仓库零密钥；请求由你的浏览器直连服务商。
-          与 CLI 侧 <code>.env</code> 完全独立。不配置也能完整做题（填空题按标准答案严格比对）。
+          与 CLI 侧 <code>.env</code> 完全独立。不配置也能完整做题（问答/实操题转自评模式，不计分）。
         </p>
         <label class="qw-field">服务商
           <select v-model="aiForm.provider" class="qw-input" @change="onProviderChange">
@@ -197,35 +258,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { withBase } from 'vitepress'
 import { ACTIVE_USER_KEY, setPageDone } from '../utils/progress.js'
+import { QUIZZES, CHAPTER_QUESTIONS, chapterListOf, moduleTitleOf, chapterTitleOf } from '../utils/chapters.js'
 
-// ============================================================
-// 数据源：题库 JSON 构建时打包（新增 quizzes/*.json 自动出现）
-// 章节清单从 courses/**/*.md 的 glob 键推导（零内容加载）
-// ============================================================
-const quizModules = import.meta.glob('../../../../quizzes/*.json', { eager: true })
-const quizzes = Object.values(quizModules)
-  .map((m) => m.default || m)
-  .sort((a, b) => String(a.title).localeCompare(String(b.title), 'zh'))
-
-// theme/components → 三层上溯到 docs/：../../../courses（四层则到项目根的 quizzes）
-const courseMdKeys = import.meta.glob('../../../courses/**/*.md')
-// 注意：glob 键在 dev 下带 ../../ 前缀、build 后被规范化为 courses/... 起始，
-// 故按 'courses/' 定位截取，两种形态通吃
-const MODULE_CHAPTERS = {}
-for (const p of Object.keys(courseMdKeys)) {
-  const i = p.indexOf('courses/')
-  if (i < 0) continue
-  const slug = p.slice(i)
-  const m = slug.match(/^courses\/([a-z-]+)\/\d{2}-[^/]+\.md$/)
-  if (m) {
-    ;(MODULE_CHAPTERS[m[1]] = MODULE_CHAPTERS[m[1]] || []).push(slug)
-  }
-}
-// 空清单守卫（坑 10）：glob 层数数错时 Vite 静默给空对象，这里必须在开发期报警
-if (import.meta.env.DEV && Object.keys(MODULE_CHAPTERS).length === 0) {
-  console.warn('[QuizWidget] MODULE_CHAPTERS 为空——import.meta.glob 相对路径可能失效，达标点亮将不会生效')
-}
+const quizzes = QUIZZES
 
 // ============================================================
 // 常量与工具
@@ -236,13 +273,6 @@ const WRONG_KEY_PREFIX = 'it-trainer-wrongbook-'
 const AI_CONFIG_KEY = 'it-trainer-ai-config'
 const USERS_KEY = 'it-trainer-users'
 
-const MODULE_LABELS = {
-  linux: 'Linux 管理',
-  networking: '网络基础',
-  troubleshooting: '故障排查',
-  'ai-programming': 'AI 编程',
-}
-
 const PROVIDER_PRESETS = {
   deepseek: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
   kimi: { baseUrl: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
@@ -250,17 +280,30 @@ const PROVIDER_PRESETS = {
   custom: { baseUrl: '', model: '' },
 }
 
+const TYPE_LABELS = {
+  'multiple-choice': '选择题',
+  'fill-blank': '填空题',
+  'short-answer': '问答题',
+  coding: '实操题',
+}
+
 function difficultyLabel(d) {
   return d === 'beginner' ? '入门' : d === 'advanced' ? '高阶' : '进阶'
 }
-function moduleLabel(mod) {
-  return MODULE_LABELS[mod] || mod || ''
+function typeLabel(q) {
+  return TYPE_LABELS[q.type] || q.type
+}
+function isSubjective(q) {
+  return q && (q.type === 'short-answer' || q.type === 'coding')
 }
 function normalizeAnswer(s) {
   return String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ')
 }
 function correctDisplay(q) {
   return q.type === 'multiple-choice' ? q.options[q.correct] : q.correct
+}
+function chapterHref(slug) {
+  return withBase('/' + slug.replace(/\.md$/, ''))
 }
 
 // ============================================================
@@ -370,7 +413,7 @@ function clearAiConfig() {
   aiConfig.value = { provider: 'deepseek', baseUrl: '', model: '', apiKey: '' }
   aiForm.value = { ...aiConfig.value }
   showAiSettings.value = false
-  showToast('已清除，填空题将按标准答案严格比对')
+  showToast('已清除，问答/实操题将转为自评模式')
 }
 
 /** OpenAI 兼容 chat 调用；失败抛错由调用方降级 */
@@ -410,7 +453,7 @@ function parseVerdictJson(text) {
   try {
     const j = JSON.parse(m[0])
     const verdict = String(j.verdict || '').toLowerCase()
-    if (verdict === 'correct' || verdict === 'incorrect') {
+    if (['correct', 'partial', 'incorrect'].includes(verdict)) {
       return { verdict, reason: String(j.reason || '').slice(0, 300) }
     }
   } catch { /* 容忍模型输出多余文字 */ }
@@ -418,10 +461,8 @@ function parseVerdictJson(text) {
 }
 
 // ============================================================
-// 分层判分
-// Tier0 本地归一化比对 correct + accepts
-// Tier1 AI 初判（仅填空且未命中且已配 key）
-// Tier2 对抗审计（仅 AI 初判为错时，防"错杀"）
+// 分层判分 — 客观题（选择题/填空题）
+// Tier0 本地归一化比对；Tier1 AI 初判；Tier2 对抗审计（仅初判为错时）
 // ============================================================
 const TIER1_SYSTEM =
   '你是严格的考试判分器。给定题目、标准答案（含可接受变体）和学生答案，判断学生答案与标准答案是否语义等价：' +
@@ -434,50 +475,91 @@ const TIER2_SYSTEM =
   '确认不等价才维持 incorrect。只输出 JSON：{"verdict":"correct 或 incorrect","reason":"一句话理由"}'
 
 async function gradeFill(q, answer) {
-  // Tier 0：本地归一化比对（免费、离线、结果确定）
   const candidates = [q.correct, ...(q.accepts || [])].map(normalizeAnswer)
   if (candidates.includes(normalizeAnswer(answer))) {
-    return { correct: true, src: 'local' }
+    return { correct: true, src: 'local', selfMode: false }
   }
   if (!aiReady.value) {
-    return { correct: false, src: 'local' }
+    return { correct: false, src: 'local', selfMode: false }
   }
   const fact =
     `题目：${q.question}\n标准答案：${q.correct}\n可接受变体：${(q.accepts || []).join('；') || '无'}\n学生答案：${answer}`
-
-  // Tier 1：AI 初判
   let first
   try {
     first = parseVerdictJson(await callAI(TIER1_SYSTEM, fact))
   } catch {
-    return { correct: false, src: 'local-fallback' }
+    return { correct: false, src: 'local-fallback', selfMode: false }
   }
-  if (!first) return { correct: false, src: 'local-fallback' }
+  if (!first) return { correct: false, src: 'local-fallback', selfMode: false }
   if (first.verdict === 'correct') {
-    return { correct: true, src: 'ai', aiReason: first.reason }
+    return { correct: true, src: 'ai', selfMode: false, aiReason: first.reason }
   }
-
-  // Tier 2：对抗审计（只防"把对的判错"）
   try {
     const second = parseVerdictJson(
       await callAI(TIER2_SYSTEM, fact + '\n初判理由：' + first.reason + '\n请复审。')
     )
     if (second && second.verdict === 'correct') {
-      return { correct: true, src: 'audit', aiReason: '审计推翻初判：' + second.reason }
+      return { correct: true, src: 'audit', selfMode: false, aiReason: '审计推翻初判：' + second.reason }
     }
-    return { correct: false, src: 'ai+audit', aiReason: first.reason }
+    return { correct: false, src: 'ai+audit', selfMode: false, aiReason: first.reason }
   } catch {
-    return { correct: false, src: 'ai', aiReason: first.reason }
+    return { correct: false, src: 'ai', selfMode: false, aiReason: first.reason }
   }
 }
+
+// ============================================================
+// 分层判分 — 主观题（问答题/实操题，AI 判卷三档 + 对抗审计）
+// 无密钥/AI 不可用 → 自评模式（不计分，见 ADR-010）
+// ============================================================
+const SUBJ_SYSTEM =
+  '你是严格的阅卷老师。给定题目、参考答案要点和学生的作答，按三档判分：' +
+  'correct=覆盖了主要要点且无明显错误；partial=方向正确但缺关键要点或有次要错误；incorrect=概念错误或未涉及要点。' +
+  '只输出 JSON：{"verdict":"correct、partial 或 incorrect","reason":"两句话以内，指出对在哪里/缺了什么"}'
+
+const SUBJ_AUDIT_SYSTEM =
+  '你是对抗性复审员。此前的阅卷老师把学生作答判为 incorrect。请专门寻找应得部分分或全分的依据：' +
+  '要点部分覆盖、思路正确但表述不同、仅非核心细节有误。可推翻为 partial 或 correct。' +
+  '确认不及格才维持 incorrect。只输出 JSON：{"verdict":"correct、partial 或 incorrect","reason":"一句话理由"}'
+
+async function gradeSubjective(q, answer) {
+  if (!aiReady.value) {
+    return { selfMode: true, src: 'self', verdict: 'incorrect', aiReason: '' }
+  }
+  const fact =
+    `题目：${q.question}\n参考答案要点：${q.reference}\n学生作答：${answer}`
+  let first
+  try {
+    first = parseVerdictJson(await callAI(SUBJ_SYSTEM, fact, 20000))
+  } catch {
+    return { selfMode: true, src: 'self-fallback', verdict: 'incorrect', aiReason: '' }
+  }
+  if (!first) return { selfMode: true, src: 'self-fallback', verdict: 'incorrect', aiReason: '' }
+  if (first.verdict !== 'incorrect') {
+    return { selfMode: false, src: 'ai', verdict: first.verdict, aiReason: first.reason }
+  }
+  try {
+    const second = parseVerdictJson(
+      await callAI(SUBJ_AUDIT_SYSTEM, fact + '\n初判理由：' + first.reason + '\n请复审。', 20000)
+    )
+    if (second && second.verdict !== 'incorrect') {
+      return { selfMode: false, src: 'ai-audit', verdict: second.verdict, aiReason: '审计改判：' + second.reason }
+    }
+  } catch { /* 审计失败维持初判 */ }
+  return { selfMode: false, src: 'ai', verdict: 'incorrect', aiReason: first.reason }
+}
+
+const VERDICT_POINTS = { correct: 1, partial: 0.5, incorrect: 0 }
 
 function judgeSrcLabel(j) {
   switch (j.src) {
     case 'local': return '本地规则判分'
     case 'local-fallback': return '本地规则判分（AI 不可用，已自动降级）'
-    case 'ai': return 'AI 初判'
+    case 'ai': return isSubjective(currentQ.value) ? 'AI 判卷' : 'AI 初判'
     case 'audit': return 'AI 初判 ✗ → 对抗审计推翻为对 ✓'
+    case 'ai-audit': return 'AI 判卷 ✗ → 对抗审计改判'
     case 'ai+audit': return 'AI 初判 + 对抗审计维持'
+    case 'self': return '自评（未配密钥）'
+    case 'self-fallback': return 'AI 不可用，转自评'
     default: return ''
   }
 }
@@ -486,23 +568,50 @@ function judgeSrcLabel(j) {
 // 答题流程
 // ============================================================
 const view = ref('pick')            // pick | quiz | result | wrongbook
-const runMode = ref('full')         // full | wrong
+const runMode = ref('full')         // full | wrong | chapter（练习模式）
 const runQuiz = ref(null)
 const runQuestions = ref([])
 const idx = ref(0)
-const correctCount = ref(0)
 const answered = ref(false)
 const grading = ref(false)
 const lastJudge = ref(null)
 const lastAnswerDisplay = ref('')
 const fillInput = ref('')
-const runResults = ref([])          // [{q, display, judge}]
+const runResults = ref([])          // [{q, display, judge, earned, possible, counted}]
 const score = ref(0)
 const passed = ref(false)
-const markedInfo = ref(null)        // {module, count} 达标点亮信息
+const markedInfo = ref(null)
 const wrongOnes = ref([])
+const selfDone = ref(false)
 
 const currentQ = computed(() => runQuestions.value[idx.value] || null)
+const isPractice = computed(() => runMode.value !== 'full')
+const earnedPoints = computed(() => runResults.value.reduce((s, r) => s + (r.counted ? r.earned : 0), 0))
+const countedSoFar = computed(() => runResults.value.filter((r) => r.counted).length)
+const uncountedNote = computed(() => {
+  const n = runResults.value.filter((r) => !r.counted).length
+  return n ? `${n} 道问答/实操题为自评模式，未计入分数（配置 AI 密钥后由 AI 判卷计分）` : ''
+})
+
+const feedbackTitle = computed(() => {
+  if (!lastJudge.value) return ''
+  if (isSubjective(currentQ.value)) {
+    if (lastJudge.value.verdict === 'correct') return '✅ 判卷：回答正确（得 1 分）'
+    if (lastJudge.value.verdict === 'partial') return '🟡 判卷：部分正确（得 0.5 分）'
+    return '❌ 判卷：未达要点（得 0 分）'
+  }
+  return lastJudge.value.correct ? '✅ 回答正确' : '❌ 回答错误'
+})
+const feedbackClass = computed(() => {
+  if (!lastJudge.value) return ''
+  const ok = isSubjective(currentQ.value)
+    ? lastJudge.value.verdict === 'correct'
+    : lastJudge.value.correct
+  const partial = isSubjective(currentQ.value) && lastJudge.value.verdict === 'partial'
+  if (ok) return 'qw-feedback-ok'
+  if (partial) return 'qw-feedback-partial'
+  return 'qw-feedback-no'
+})
 
 function bestScore(quizId) {
   const list = quizStore.value.attempts.filter((a) => a.quizId === quizId)
@@ -515,15 +624,26 @@ function isVerified(module) {
 
 function startQuiz(qz, mode) {
   runQuiz.value = qz
-  runMode.value = mode
   runQuestions.value = qz.questions.map((q) => ({ ...q }))
   resetRun()
+  runMode.value = mode
   view.value = 'quiz'
+}
+
+/** 章节小测（深链 ?chapter=courses/x/01-y.md）：跨题库聚合该章题目，练习模式 */
+function startChapterRun(chapter) {
+  const items = CHAPTER_QUESTIONS[chapter] || []
+  if (!items.length) return false
+  runQuiz.value = { id: 'chapter:' + chapter, title: '章节小测 · ' + chapterTitleOf(chapter), module: '' }
+  runQuestions.value = items.map((q) => ({ ...q }))
+  resetRun()
+  runMode.value = 'chapter'
+  view.value = 'quiz'
+  return true
 }
 
 function resetRun() {
   idx.value = 0
-  correctCount.value = 0
   answered.value = false
   grading.value = false
   lastJudge.value = null
@@ -534,6 +654,7 @@ function resetRun() {
   passed.value = false
   markedInfo.value = null
   wrongOnes.value = []
+  selfDone.value = false
 }
 
 function confirmQuit() {
@@ -544,7 +665,7 @@ function confirmQuit() {
 }
 
 function optionClass(i) {
-  if (!answered.value || !lastJudge.value) return ''
+  if (!answered.value || !lastJudge.value || isSubjective(currentQ.value)) return ''
   if (i === currentQ.value.correct) return 'qw-option-right'
   if (i === lastJudge.value.chosen && !lastJudge.value.correct) return 'qw-option-wrong'
   return ''
@@ -553,8 +674,8 @@ function optionClass(i) {
 function answerChoice(i) {
   if (answered.value || grading.value) return
   const q = currentQ.value
-  const judge = { correct: i === q.correct, src: 'local', chosen: i }
-  finishAnswer(judge, q.options[i])
+  const judge = { correct: i === q.correct, src: 'local', selfMode: false, chosen: i }
+  finishAnswer(judge, q.options[i], judge.correct ? 1 : 0, 1, true)
 }
 
 async function submitFill() {
@@ -566,28 +687,67 @@ async function submitFill() {
   try {
     judge = await gradeFill(q, answer)
   } catch {
-    judge = { correct: false, src: 'local-fallback' }
+    judge = { correct: false, src: 'local-fallback', selfMode: false }
   }
   grading.value = false
-  finishAnswer(judge, answer)
+  finishAnswer(judge, answer, judge.correct ? 1 : 0, 1, true)
 }
 
-function finishAnswer(judge, display) {
+async function submitSubjective() {
+  if (answered.value || grading.value || !fillInput.value.trim()) return
+  const q = currentQ.value
+  const answer = fillInput.value.trim()
+  grading.value = true
+  let judge
+  try {
+    judge = await gradeSubjective(q, answer)
+  } catch {
+    judge = { selfMode: true, src: 'self-fallback', verdict: 'incorrect', aiReason: '' }
+  }
+  grading.value = false
+  const counted = !judge.selfMode
+  const earned = counted ? VERDICT_POINTS[judge.verdict] || 0 : 0
+  finishAnswer(judge, answer, earned, 1, counted)
+  if (judge.selfMode) selfDone.value = false
+}
+
+/** 自评模式按钮：只影响错题本（答对移出/答错记录），不影响分数 */
+function selfAssess(ok) {
+  if (!lastJudge.value) return
+  selfDone.value = true
+  const q = currentQ.value
+  if (ok) {
+    removeFromWrongbook(q)
+  } else {
+    addWrong(q, lastAnswerDisplay.value, lastJudge.value)
+  }
+}
+
+function finishAnswer(judge, display, earned, possible, counted) {
   answered.value = true
   lastJudge.value = judge
   lastAnswerDisplay.value = display
   const q = currentQ.value
-  runResults.value.push({ q, display, judge })
-  if (judge.correct) {
-    correctCount.value++
-    // 答对自动移出错题本（双轨里"效果"优先）
-    const key = wrongKey(runQuiz.value.id, q.id)
-    const before = wrongItems.value.length
-    wrongItems.value = wrongItems.value.filter((it) => it.key !== key)
-    if (wrongItems.value.length !== before) persistWrongItems()
-  } else {
+  runResults.value.push({ q, display, judge, earned, possible, counted })
+  if (counted && earned >= possible) {
+    removeFromWrongbook(q)
+  } else if (counted && earned > 0) {
+    // 部分得分：不记错题本（接近掌握），仅结果页提示巩固
+  } else if (!judge.selfMode || selfDone.value) {
     addWrong(q, display, judge)
   }
+  // 自评模式错题记录延迟到 selfAssess() 选择后
+  if (judge.selfMode) {
+    const rec = runResults.value[runResults.value.length - 1]
+    rec.pendingSelf = true
+  }
+}
+
+function removeFromWrongbook(q) {
+  const key = wrongKey(runQuiz.value.id, q.id)
+  const before = wrongItems.value.length
+  wrongItems.value = wrongItems.value.filter((it) => it.key !== key)
+  if (wrongItems.value.length !== before) persistWrongItems()
 }
 
 function wrongKey(quizId, qid) {
@@ -603,6 +763,7 @@ function addWrong(q, display, judge) {
     exist.times = (exist.times || 1) + 1
     exist.lastAt = new Date().toISOString()
     exist.judgeSrc = judgeSrcLabel(judge)
+    if (isSubjective(q)) exist.reference = q.reference
   } else {
     wrongItems.value.unshift({
       key,
@@ -611,9 +772,12 @@ function addWrong(q, display, judge) {
       qid: q.id,
       question: q.question,
       type: q.type,
+      isSubjective: isSubjective(q),
       myAnswer: display,
-      correctDisplay: correctDisplay(q),
-      explanation: q.explanation,
+      correctDisplay: isSubjective(q) ? '' : correctDisplay(q),
+      explanation: q.explanation || '',
+      reference: isSubjective(q) ? q.reference : '',
+      chapter: q.chapter || '',
       times: 1,
       lastAt: new Date().toISOString(),
       judgeSrc: judgeSrcLabel(judge),
@@ -632,29 +796,31 @@ function nextQuestion() {
     lastJudge.value = null
     lastAnswerDisplay.value = ''
     fillInput.value = ''
+    selfDone.value = false
   } else {
     finishQuiz()
   }
 }
 
 function finishQuiz() {
-  const total = runQuestions.value.length
-  score.value = total ? Math.round((correctCount.value / total) * 100) : 0
+  const countedResults = runResults.value.filter((r) => r.counted)
+  const total = countedResults.length
+  const earned = countedResults.reduce((s, r) => s + r.earned, 0)
+  score.value = total ? Math.round((earned / total) * 100) : 0
   passed.value = score.value >= PASS_LINE
-  wrongOnes.value = runResults.value.filter((r) => !r.judge.correct)
+  wrongOnes.value = runResults.value.filter((r) => !r.judge.selfMode && r.earned < r.possible)
 
   if (runMode.value === 'full' && currentUser.value) {
     quizStore.value.attempts.push({
       quizId: runQuiz.value.id,
       score: score.value,
-      correct: correctCount.value,
+      correct: earned,
       total,
       date: new Date().toISOString(),
     })
-    // 达标 → 自动点亮该模块全部章节（双轨：手动标记不受影响）
-    if (passed.value && runQuiz.value.module && (MODULE_CHAPTERS[runQuiz.value.module] || []).length) {
+    if (passed.value && runQuiz.value.module && chapterListOf(runQuiz.value.module).length) {
       const mod = runQuiz.value.module
-      const chapters = MODULE_CHAPTERS[mod]
+      const chapters = chapterListOf(mod)
       for (const slug of chapters) setPageDone(currentUser.value.id, slug, true)
       if (!quizStore.value.verifiedModules.includes(mod)) quizStore.value.verifiedModules.push(mod)
       markedInfo.value = { module: mod, count: chapters.length }
@@ -702,9 +868,22 @@ const wrongGroups = computed(() => {
 })
 
 function redoWrongGroup(g) {
-  // 从原题库找回完整题目（错题记录里不存选项，避免重复维护）
-  const src = quizzes.find((qz) => qz.id === g.quizId)
-  if (!src) return
+  // 章节小测产生的错题：按题目自身归属的题库找回原题
+  const quizId = String(g.quizId).startsWith('chapter:') ? null : g.quizId
+  let src = quizId ? quizzes.find((qz) => qz.id === quizId) : null
+  if (!src) {
+    // 从全库按 题干 匹配（章节小测的兜底）
+    const byQuestion = new Map()
+    for (const qz of quizzes) for (const q of qz.questions) byQuestion.set(q.question, { qz, q })
+    const found = g.items.map((it) => byQuestion.get(it.question)).filter(Boolean)
+    if (!found.length) return
+    runQuiz.value = { id: g.quizId, title: g.quizTitle, module: '' }
+    runQuestions.value = found.map((f) => ({ ...f.q }))
+    resetRun()
+    runMode.value = 'wrong'
+    view.value = 'quiz'
+    return
+  }
   runQuiz.value = { id: src.id, title: src.title, module: '', questions: src.questions }
   runQuestions.value = g.items
     .map((it) => src.questions.find((q) => q.id === it.qid))
@@ -724,7 +903,7 @@ async function aiExplain(it) {
   try {
     const text = await callAI(
       '你是一位耐心的 IT 讲师。学生做错了一道题，请针对学生的错误答案讲解：1) 为什么这个答案是错的（错在哪、容易和什么混淆）；2) 正确答案背后的考点；3) 一个帮助记忆的提示。全部用中文，200 字以内。直接输出讲解正文，不要 JSON。',
-      `题目：${it.question}\n学生的错误答案：${it.myAnswer}\n正确答案：${it.correctDisplay}\n参考解析：${it.explanation}`,
+      `题目：${it.question}\n学生的错误答案：${it.myAnswer}\n正确答案：${it.correctDisplay || it.reference}\n参考解析：${it.explanation || it.reference}`,
       20000
     )
     it.aiExplanation = String(text).trim()
@@ -737,7 +916,7 @@ async function aiExplain(it) {
 }
 
 // ============================================================
-// 生命周期 / 提示
+// 生命周期 / 提示 / 章节深链
 // ============================================================
 let toastTimer = null
 const toast = ref('')
@@ -752,10 +931,20 @@ function onUserChanged() {
   loadStores()
 }
 
+function initFromUrl() {
+  try {
+    const chapter = new URLSearchParams(window.location.search).get('chapter')
+    if (chapter && CHAPTER_QUESTIONS[chapter]) {
+      startChapterRun(chapter)
+    }
+  } catch { /* URL 解析失败忽略 */ }
+}
+
 onMounted(() => {
   fetchCurrentUser()
   loadStores()
   loadAiConfig()
+  initFromUrl()
   window.addEventListener('it-trainer:user-changed', onUserChanged)
 })
 onUnmounted(() => {
@@ -921,11 +1110,16 @@ onUnmounted(() => {
   padding: 1px 8px;
   margin-bottom: 8px;
 }
+.qw-qtype-subj {
+  color: var(--vp-c-warning-1, #d97706);
+  border-color: var(--vp-c-warning-1, #d97706);
+}
 .qw-qtext {
   margin: 0;
   font-size: 15px;
   line-height: 1.7;
   color: var(--vp-c-text-1);
+  white-space: pre-wrap;
 }
 .qw-options {
   display: flex;
@@ -984,6 +1178,34 @@ onUnmounted(() => {
   padding: 8px 12px;
   font-size: 14px;
 }
+.qw-subjective {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qw-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  font-family: inherit;
+  resize: vertical;
+}
+.qw-subj-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.qw-subj-count {
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+}
 .qw-grading {
   margin-top: 12px;
   font-size: 13px;
@@ -999,9 +1221,17 @@ onUnmounted(() => {
   border-color: var(--vp-c-green-1, #10b981);
   background: var(--vp-c-green-soft, rgba(16, 185, 129, 0.08));
 }
+.qw-feedback-partial {
+  border-color: var(--vp-c-warning-1, #d97706);
+  background: var(--vp-c-yellow-soft, rgba(217, 119, 6, 0.08));
+}
 .qw-feedback-no {
   border-color: var(--vp-c-danger-1, #ef4444);
   background: var(--vp-c-red-soft, rgba(239, 68, 68, 0.06));
+}
+.qw-feedback-self {
+  border-color: var(--vp-c-warning-1, #d97706);
+  background: var(--vp-c-yellow-soft, rgba(217, 119, 6, 0.06));
 }
 .qw-feedback-head {
   display: flex;
@@ -1019,11 +1249,31 @@ onUnmounted(() => {
   color: var(--vp-c-text-2);
   margin: 6px 0 0;
 }
+.qw-answer-text {
+  white-space: pre-wrap;
+}
 .qw-explanation {
   font-size: 13px;
   line-height: 1.7;
   color: var(--vp-c-text-2);
   margin: 8px 0 0;
+}
+.qw-reference {
+  margin-top: 10px;
+  border-top: 1px dashed var(--vp-c-divider);
+  padding-top: 8px;
+}
+.qw-reference-title {
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+  margin-bottom: 4px;
+}
+.qw-reference-body {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--vp-c-text-2);
+  white-space: pre-wrap;
+  margin: 0;
 }
 .qw-ai-reason {
   font-size: 13px;
@@ -1036,8 +1286,24 @@ onUnmounted(() => {
 .qw-ai-long {
   white-space: pre-wrap;
 }
+.qw-self-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.qw-btn-ok {
+  border-color: var(--vp-c-green-1, #10b981);
+  color: var(--vp-c-green-1, #10b981);
+}
 .qw-next {
   margin-top: 12px;
+}
+.qw-backlink {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--vp-c-brand-1);
 }
 
 /* ---- 按钮 ---- */
@@ -1142,6 +1408,7 @@ onUnmounted(() => {
   background: var(--vp-c-bg);
   padding: 10px 12px;
   margin-bottom: 8px;
+  text-align: left;
 }
 .qw-wrong-q {
   margin: 0 0 6px;

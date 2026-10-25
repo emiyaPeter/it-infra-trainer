@@ -132,6 +132,13 @@
       ],
       "correct": 1,
       "explanation": "HTTPS = HTTP over TLS/SSL，默认端口443。HTTP默认80。8080和8443常被用作开发和测试的替代端口。"
+    },
+    {
+      "id": "q11",
+      "type": "short-answer",
+      "question": "问答：给定网段 192.168.10.0/26，写出：可用主机数、广播地址，以及该子网第 3 个可用主机的 IP。",
+      "reference": "要点：\n① /26 → 主机位 6 位 → 可用主机 62（64-2）\n② 块大小 64 → 该子网范围 192.168.10.0–63 → 广播地址 192.168.10.63\n③ 可用范围 .1–.62 → 第 3 个可用 IP 为 192.168.10.3",
+      "chapter": "courses/networking/04-subnetting.md"
     }
   ]
 }

@@ -1,0 +1,127 @@
+{
+  "id": "ansible-01",
+  "title": "自动化运维测验",
+  "difficulty": "beginner",
+  "module": "ansible",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "课程说 Ansible 是'无 Agent'的工具，这具体指什么？",
+      "options": [
+        "不需要在目标机器上安装客户端，通过 SSH 就能管理",
+        "目标机器上必须安装并常驻一个专用 Agent 进程",
+        "Ansible 只能管理本机，无法管理远程服务器",
+        "需要把 Ansible 安装到每一台被管理的机器上"
+      ],
+      "correct": 0,
+      "explanation": "无 Agent 是 Ansible 流行的首要原因：控制机通过 SSH 连到目标机执行任务，目标机什么都不用装，入门门槛极低。B 是 Puppet/Salt 等有 Agent 工具的模式；C 恰好相反，Ansible 就是为批量管远程主机设计的；D 混淆了控制端和被管理端。",
+      "chapter": "courses/ansible/01-automation-concepts.md"
+    },
+    {
+      "id": "q2",
+      "type": "multiple-choice",
+      "question": "课程提到 Ansible 是'幂等'的，'幂等'是什么意思？",
+      "options": [
+        "同一个任务执行 10 次和执行 1 次的结果一样，不会重复安装",
+        "只能在名为'幂等机'的特殊服务器上运行",
+        "每次执行的结果都随机不同",
+        "执行速度是手动运维的 10 倍以上"
+      ],
+      "correct": 0,
+      "explanation": "幂等指重复执行不产生副作用：Nginx 已装好，再跑一遍任务也不会重复安装，这是批量管理100台服务器结果完全一致的保障。B 无此说法；C 与幂等正好相反；D 是'自动化比手动快'的价值描述，不是幂等的定义。",
+      "chapter": "courses/ansible/01-automation-concepts.md"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "Ansible 的 Inventory 文件（如 ~/ansible-hosts）的作用是什么？",
+      "options": [
+        "记录 Ansible 每次执行的日志",
+        "列出被管理的主机，并可用 [webservers]、[dbservers] 这样的分组组织",
+        "存放 Playbook 里要用到的变量",
+        "加密保存 SSH 密码"
+      ],
+      "correct": 1,
+      "explanation": "Inventory 是主机清单，写清楚要管哪些机器（可指定 ansible_host、ansible_user），并支持分组，执行命令时用 -i 指定、按组名批量操作。A 与日志无关；C 的变量写在 Playbook 的 vars 里；D 不是它的功能。",
+      "chapter": "courses/ansible/02-ansible-basics.md"
+    },
+    {
+      "id": "q4",
+      "type": "multiple-choice",
+      "question": "ad-hoc 命令 `ansible webservers -i ~/ansible-hosts -m apt -a \"name=nginx state=present\" --become` 中，--become 的作用是？",
+      "options": [
+        "把这些主机加入 webservers 组",
+        "以提升权限（sudo 提权到 root）执行任务",
+        "只做连通性测试，不真正安装",
+        "把任务放到明天凌晨执行"
+      ],
+      "correct": 1,
+      "explanation": "安装软件包需要 root 权限，--become 表示提权执行（类似直接加 sudo）。-i 指定 Inventory 文件，-m 指定模块，-a 传模块参数，各司其职。A/C/D 都不是 --become 的含义。",
+      "chapter": "courses/ansible/02-ansible-basics.md"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "关于 Ansible Playbook，课程强调它写的是什么？",
+      "options": [
+        "按顺序写死每一步操作的脚本（像 Shell 脚本那样）",
+        "用 YAML 描述系统的'目标状态'，而不是执行步骤",
+        "服务器的硬件配置清单",
+        "一种需要编译的 Python 程序"
+      ],
+      "correct": 1,
+      "explanation": "Playbook 用 YAML 声明'我要达到的状态'（如 Nginx 已安装、已启动），由 Ansible 决定怎么做到，这也是幂等的来源。A 是过程式脚本的思路，Ansible 恰恰要摆脱它；C/D 与 Playbook 完全无关。",
+      "chapter": "courses/ansible/03-ansible-playbook.md"
+    },
+    {
+      "id": "q6",
+      "type": "multiple-choice",
+      "question": "Playbook 中的 handlers（处理程序）什么时候执行？",
+      "options": [
+        "每次运行 Playbook 都会执行一遍",
+        "只在配置发生变更时才触发，例如改了 Nginx 配置才重启服务",
+        "只在某个任务失败时才执行",
+        "必须手动 SSH 到目标机器上触发"
+      ],
+      "correct": 1,
+      "explanation": "handlers 的典型场景是'配置变了才需要做的动作'，比如修改 Nginx 配置后才重启，避免每次运行都无谓重启服务。A 会造成多余重启；C 是失败处理的范畴；D 相反，handlers 由 Ansible 在运行中自动触发。",
+      "chapter": "courses/ansible/03-ansible-playbook.md"
+    },
+    {
+      "id": "q7",
+      "type": "multiple-choice",
+      "question": "Terraform 基本工作流中，`terraform plan` 命令的作用是什么？",
+      "options": [
+        "预览将要做的变更，但不会真的执行",
+        "下载 provider 插件并初始化目录",
+        "真正去创建/修改云资源",
+        "销毁本目录管理的所有资源"
+      ],
+      "correct": 0,
+      "explanation": "plan 是'干跑'：先看 Terraform 打算创建、修改、删除什么，确认无误再 apply，避免误操作。B 是 init 的作用，C 是 apply，D 是 destroy，四条命令构成 Terraform 的核心工作流。",
+      "chapter": "courses/ansible/04-terraform-basics.md"
+    },
+    {
+      "id": "q8",
+      "type": "multiple-choice",
+      "question": "你在 AWS 免费层用 Terraform 练习创建了一台 EC2，练习结束后为了避免继续产生费用，应该执行哪条命令？",
+      "options": [
+        "terraform destroy",
+        "terraform plan",
+        "terraform init",
+        "terraform fmt"
+      ],
+      "correct": 0,
+      "explanation": "destroy 会销毁这套代码创建的所有资源，免费层资源用完及时销毁就不花钱——'创建练习、destroy 删除'正是课程推荐的学习姿势。plan 只预览不删除，init 只装插件，fmt 只整理代码格式，资源都会继续留着计费。",
+      "chapter": "courses/ansible/04-terraform-basics.md"
+    },
+    {
+      "id": "q9",
+      "type": "coding",
+      "question": "公司有一组 webservers 主机（Inventory 文件为 ~/ansible-hosts，SSH 用户可提权）。请编写 Playbook 文件 deploy-web.yml：对 webservers 提权执行——安装最新版 Nginx、启动 Nginx 并设置开机自启、把本机 ./index.html 部署到 /var/www/html/（权限 0644）、防火墙放行 TCP 端口（端口值用变量 nginx_port 表示），并写出运行该 Playbook 的完整命令。",
+      "reference": "要点：① 整体结构是一个 play：- name: 部署Web服务器 / hosts: webservers / become: yes；② vars 中定义 nginx_port: 80，任务里用 {{ nginx_port }} 引用；③ 任务1 安装：apt: name=nginx state=latest；④ 任务2 启动：systemd: name=nginx state=started enabled=yes；⑤ 任务3 部署文件：copy: src=./index.html dest=/var/www/html/ mode=0644；⑥ 任务4 防火墙：ufw: rule=allow port={{ nginx_port }} proto=tcp；运行命令 ansible-playbook -i ~/ansible-hosts deploy-web.yml（在本机练手可加 -c local）。",
+      "chapter": "courses/ansible/03-ansible-playbook.md"
+    }
+  ]
+}
