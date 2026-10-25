@@ -12,6 +12,12 @@
         <span v-else-if="loadingUser" class="dw-user-loading">加载中...</span>
         <span v-else class="dw-user-none">未设置</span>
         <span v-if="userList.length > 1" class="dw-user-count">(共 {{ userList.length }} 位)</span>
+        <button
+          v-if="currentUserName && currentUserName !== 'default'"
+          class="dw-btn dw-btn-reset dw-recovery-btn"
+          title="生成/重置账户恢复码（忘记密码时用它重置）"
+          @click="openRecoveryModal"
+        >🔑 恢复码</button>
       </div>
 
       <div v-if="userList.length > 1" class="dw-user-create-hint">
@@ -57,6 +63,21 @@
       </p>
     </div>
 
+    <!-- Quiz Score Stats -->
+    <div v-if="quizStatRows.length" class="dw-section">
+      <div class="dw-label">📈 测验成绩（各模块最佳）</div>
+      <div class="dw-quiz-summary">平均最佳 {{ avgBestScore }} 分 · 已验证 {{ verifiedCount }} 模块</div>
+      <div v-for="s in quizStatRows" :key="s.module" class="dw-quiz-row">
+        <span class="dw-quiz-name">{{ s.title }}</span>
+        <div class="dw-mini-bar">
+          <div class="dw-mini-fill" :class="{ 'dw-complete': s.best >= 80 }" :style="{ width: s.best + '%' }"></div>
+        </div>
+        <span class="dw-quiz-best" :class="{ 'dw-quiz-pass': s.best >= 80 }">{{ s.best }} 分</span>
+        <button v-if="s.verified" class="dw-btn dw-btn-reset dw-cert-btn" title="下载结业证书" @click="openCertificate(s)">🎓 证书</button>
+        <span v-else-if="s.best < 80" class="dw-quiz-weak">待强化</span>
+      </div>
+    </div>
+
     <!-- Quick Links -->
     <div class="dw-section">
       <div class="dw-label">快速操作</div>
@@ -88,12 +109,18 @@
     <!-- Data Management -->
     <div class="dw-section">
       <div class="dw-label">💾 学习数据管理</div>
+      <div v-if="backupReminder" class="dw-backup-reminder">
+        ⏰ {{ backupReminder }}——学习数据只存在本浏览器，建议导出一份备份文件。
+        <button class="dw-btn dw-btn-reset" @click="exportData">立即备份</button>
+      </div>
       <div class="dw-links">
         <button class="dw-link dw-btn-like" @click="exportData">📤 导出备份</button>
         <button class="dw-link dw-btn-like" @click="triggerImport">📥 导入备份</button>
+        <button class="dw-link dw-btn-like" @click="openReport">📋 学习报告</button>
       </div>
       <p class="dw-hint">
-        备份包含账户（含密码）与全部学习进度。换浏览器 / 换电脑时：旧环境导出 → 新环境导入。
+        备份包含账户（含密码与恢复码哈希）、学习进度、测验成绩与错题本。换浏览器 / 换电脑时：旧环境导出 → 新环境导入。
+        学习报告在新标签页打开，可打印成 PDF。
       </p>
       <p v-if="dataMsg" class="dw-data-msg">{{ dataMsg }}</p>
       <input
@@ -104,11 +131,26 @@
         @change="onImportFile"
       />
     </div>
+
+    <!-- 结业证书弹窗（canvas 本地生成） -->
+    <Teleport to="body">
+      <div v-if="certModal" class="dw-cert-mask" @click.self="certModal = null">
+        <div class="dw-cert-modal">
+          <h4>🎓 结业证书 · {{ certModal.title }}</h4>
+          <canvas ref="certCanvas" class="dw-cert-canvas"></canvas>
+          <div class="dw-cert-actions">
+            <button class="dw-btn" @click="downloadCertificate">⬇️ 下载 PNG</button>
+            <button class="dw-btn dw-btn-ghost-cert" @click="certModal = null">关闭</button>
+          </div>
+          <p class="dw-cert-note">证书由本机浏览器生成，记录达标测验成绩，属自学完成证明（非官方认证）。</p>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { withBase } from 'vitepress'
 import {
   PHASE_CATALOG,
@@ -118,6 +160,115 @@ import {
   computePhaseProgress,
   totalCompletedChapters,
 } from '../utils/progress.js'
+import { readStore, writeStore } from '../utils/store.js'
+import { summarizeModules, buildReportHTML } from '../utils/report.js'
+
+const BACKUP_META_KEY = 'it-trainer-backup-meta'
+
+// 恢复码弹窗在 AuthWidget 内，经事件总线打开
+function openRecoveryModal() {
+  window.dispatchEvent(new CustomEvent('it-trainer:open-recovery'))
+}
+
+// ============================================================
+// 结业证书（原生 Canvas，本地生成，零依赖零外发）
+// ============================================================
+const certModal = ref(null) // {module, title, best}
+const certCanvas = ref(null)
+
+function openCertificate(stat) {
+  certModal.value = stat
+  nextTick(() => drawCertificate(stat))
+}
+
+function drawCertificate(stat) {
+  const canvas = certCanvas.value
+  if (!canvas) return
+  const W = 1200, H = 850
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')
+  const brand = '#3b82f6'
+  const ink = '#1f2329'
+  // 底与双边框
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+  ctx.strokeStyle = brand
+  ctx.lineWidth = 6
+  ctx.strokeRect(28, 28, W - 56, H - 56)
+  ctx.lineWidth = 1.5
+  ctx.strokeRect(44, 44, W - 88, H - 88)
+  // 标题
+  ctx.fillStyle = ink
+  ctx.textAlign = 'center'
+  ctx.font = 'bold 64px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  ctx.fillText('结 业 证 书', W / 2, 170)
+  ctx.font = '22px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  ctx.fillStyle = '#6b7280'
+  ctx.fillText('Course Completion · Self-Study Record', W / 2, 212)
+  // 主体
+  ctx.fillStyle = ink
+  ctx.font = '28px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  ctx.fillText('兹证明', W / 2, 300)
+  ctx.font = 'bold 56px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  ctx.fillStyle = brand
+  ctx.fillText(currentUserName.value || '学习者', W / 2, 380)
+  ctx.fillStyle = ink
+  ctx.font = '28px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  ctx.fillText(`已完成《${stat.title}》模块课程学习`, W / 2, 445)
+  ctx.fillText(`并通过模块达标测验（最佳成绩 ${stat.best} 分，达标线 80 分）`, W / 2, 492)
+  // 印章（装饰性圆环 + 五角星）
+  ctx.strokeStyle = '#d97706'
+  ctx.lineWidth = 4
+  ctx.beginPath()
+  ctx.arc(W / 2 + 330, 640, 78, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.fillStyle = '#d97706'
+  ctx.font = 'bold 20px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  ctx.fillText('测验达标', W / 2 + 330, 625)
+  ctx.fillText('验 证', W / 2 + 330, 655)
+  // 日期与签发
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#6b7280'
+  ctx.font = '22px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  const now = new Date()
+  ctx.fillText(`签发日期：${now.getFullYear()} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日`, 120, 700)
+  ctx.fillText('签发方：IT 基础设施培训助手（本机浏览器生成）', 120, 738)
+  // 诚实声明
+  ctx.font = '16px "Noto Sans SC", "Microsoft YaHei", sans-serif'
+  ctx.fillStyle = '#9ca3af'
+  ctx.fillText('本证书为自学完成证明，成绩来自本浏览器学习记录，非官方认证。', 120, 782)
+}
+
+function downloadCertificate() {
+  const canvas = certCanvas.value
+  if (!canvas) return
+  const a = document.createElement('a')
+  const mod = certModal.value ? certModal.value.module : 'module'
+  a.href = canvas.toDataURL('image/png')
+  a.download = `certificate-${mod}-${currentUserName.value || 'learner'}.png`
+  a.click()
+}
+
+// ============================================================
+// 学习报告（新标签页打开，可打印成 PDF；自报/验证分档呈现）
+// ============================================================
+function openReport() {
+  const activeId = loadActiveUserId()
+  const users = loadUsers()
+  const found = activeId ? users.find(u => String(u.id) === String(activeId)) : null
+  if (!found || found.name === 'default') {
+    dataMsg.value = '登录后才能生成个人学习报告。'
+    return
+  }
+  const quiz = readStore('it-trainer-quiz-' + found.id) || { attempts: [], verifiedModules: [] }
+  const progress = loadUserProgress(found.id)
+  const html = buildReportHTML({ userName: found.name, quizStore: quiz, progress })
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+  window.open(url, '_blank')
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+  dataMsg.value = ''
+}
 
 // ============================================================
 // localStorage 用户列表
@@ -183,6 +334,7 @@ const timerDisplay = computed(() => {
 })
 
 function startTimer() {
+  stopTitleFlash()
   timerRunning.value = true
   timerMsg.value = ''
   // 不重置，支持继续计时
@@ -191,6 +343,7 @@ function startTimer() {
     if (timerSeconds.value >= 25 * 60) {
       stopTimer()
       timerMsg.value = '🍅 25 分钟到了！休息 5 分钟吧。'
+      notifyTimerDone()
     }
   }, 1000)
 }
@@ -203,6 +356,50 @@ function stopTimer() {
 function resetTimer() {
   timerSeconds.value = 0
   timerMsg.value = ''
+  stopTitleFlash()
+}
+
+// ======== 到点提醒：Web Audio 合成三声 beep + 标题闪烁（切后台也能察觉） ========
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    for (let i = 0; i < 3; i++) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = 880
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.35)
+      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + i * 0.35 + 0.03)
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.35 + 0.3)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start(ctx.currentTime + i * 0.35)
+      osc.stop(ctx.currentTime + i * 0.35 + 0.32)
+    }
+  } catch { /* 无音频权限时静默 */ }
+}
+
+let titleFlashTimer = null
+let titleFlashOrig = ''
+function startTitleFlash() {
+  stopTitleFlash()
+  titleFlashOrig = document.title
+  let on = false
+  titleFlashTimer = setInterval(() => {
+    document.title = (on = !on) ? '🍅 时间到！休息一下' : titleFlashOrig
+  }, 900)
+}
+function stopTitleFlash() {
+  if (titleFlashTimer) {
+    clearInterval(titleFlashTimer)
+    titleFlashTimer = null
+    if (titleFlashOrig) document.title = titleFlashOrig
+    titleFlashOrig = ''
+  }
+}
+function notifyTimerDone() {
+  playBeep()
+  startTitleFlash()
+  setTimeout(stopTitleFlash, 15000) // 15 秒后自动恢复标题
 }
 
 // ============================================================
@@ -212,6 +409,16 @@ const currentUserName = ref('')
 const loadingUser = ref(true)
 const userList = ref([])
 const verifiedCount = ref(0)
+const backupReminder = ref('')
+const allQuizStats = ref([])
+
+// 有成绩的模块行（含验证徽章；无成绩模块不显示）
+const quizStatRows = computed(() => allQuizStats.value.filter((m) => m.best !== null))
+const avgBestScore = computed(() => {
+  const rows = quizStatRows.value
+  if (!rows.length) return null
+  return Math.round(rows.reduce((s, m) => s + m.best, 0) / rows.length)
+})
 
 function refreshAll() {
   const users = loadUsers()
@@ -223,13 +430,26 @@ function refreshAll() {
     : null
   currentUserName.value = found && found.name !== 'default' ? found.name : ''
 
-  // 测验达标模块数（随堂测验 ≥80 分点亮，见 QuizWidget）
+  // 测验达标模块数 + 成绩明细（随堂测验 ≥80 分点亮，见 QuizWidget）
   verifiedCount.value = 0
+  allQuizStats.value = []
   if (found) {
-    try {
-      const q = JSON.parse(localStorage.getItem('it-trainer-quiz-' + found.id) || 'null')
-      if (q && Array.isArray(q.verifiedModules)) verifiedCount.value = q.verifiedModules.length
-    } catch { /* 忽略损坏数据 */ }
+    const q = readStore('it-trainer-quiz-' + found.id)
+    if (q && Array.isArray(q.verifiedModules)) verifiedCount.value = q.verifiedModules.length
+    allQuizStats.value = summarizeModules(q || { attempts: [], verifiedModules: [] }, loadUserProgress(found.id))
+  }
+
+  // 备份提醒：已登录的真实用户，>7 天未备份或注册 >3 天从未备份
+  backupReminder.value = ''
+  if (found && found.name !== 'default' && found.name !== '演示用户') {
+    const meta = readStore(BACKUP_META_KEY)
+    const ageDays = found.created_at ? (Date.now() - new Date(found.created_at).getTime()) / 86400000 : 0
+    if (!meta || !meta.at) {
+      if (ageDays > 3) backupReminder.value = '注册已超过 3 天但从未导出过备份'
+    } else {
+      const sinceDays = Math.floor((Date.now() - new Date(meta.at).getTime()) / 86400000)
+      if (sinceDays > 7) backupReminder.value = `距上次备份已 ${sinceDays} 天`
+    }
   }
 
   loadPhaseProgress()
@@ -295,16 +515,23 @@ const importInput = ref(null)
 function collectBackup() {
   const users = loadUsers()
   const progressByUser = {}
+  const quizByUser = {}
+  const wrongbookByUser = {}
   for (const u of users) {
     if (u.name === 'default') continue
     const raw = localStorage.getItem('it-trainer-progress-' + u.id)
     if (raw) progressByUser[u.name] = JSON.parse(raw)
+    // v2 备份：测验成绩与错题本一并带走（quizStore 键内为信封格式，原样转存）
+    const qz = localStorage.getItem('it-trainer-quiz-' + u.id)
+    if (qz) quizByUser[u.name] = JSON.parse(qz)
+    const wb = localStorage.getItem('it-trainer-wrongbook-' + u.id)
+    if (wb) wrongbookByUser[u.name] = JSON.parse(wb)
   }
   const activeId = loadActiveUserId()
   const active = users.find(u => String(u.id) === String(activeId))
   return {
     app: 'it-infra-trainer',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     activeUserName: active ? active.name : '',
     users: users
@@ -313,9 +540,12 @@ function collectBackup() {
         name: u.name,
         phone: u.phone,
         password_hash: u.password_hash || '',
+        recovery_hash: u.recovery_hash || '',
         created_at: u.created_at || '',
       })),
     progressByUser,
+    quizByUser,
+    wrongbookByUser,
   }
 }
 
@@ -337,7 +567,10 @@ function exportData() {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
-    dataMsg.value = `已导出 ${backup.users.length} 个账户的备份文件（注意妥善保管，内含密码哈希）。`
+    // 记录备份时间（提醒条依据）
+    writeStore(BACKUP_META_KEY, { at: new Date().toISOString() }, 1)
+    backupReminder.value = ''
+    dataMsg.value = `已导出 ${backup.users.length} 个账户的备份文件（含进度/测验成绩/错题本；内含密码哈希，请妥善保管）。`
   } catch (e) {
     dataMsg.value = '导出失败: ' + e.message
   }
@@ -387,9 +620,12 @@ function applyBackup(backup) {
         name: bu.name,
         phone: bu.phone || '',
         password_hash: bu.password_hash || '',
+        recovery_hash: bu.recovery_hash || '',
         created_at: bu.created_at || new Date().toISOString(),
       }
       users.push(local)
+    } else if (bu.recovery_hash && !local.recovery_hash) {
+      local.recovery_hash = bu.recovery_hash // 本机没有恢复码时随备份补齐
     }
     nameToLocalId[bu.name] = local.id
   }
@@ -402,9 +638,26 @@ function applyBackup(backup) {
       importedProgress++
     }
   }
+  // v2 备份：测验成绩与错题本（v1 旧备份无此两节，跳过即可）
+  let importedQuiz = 0
+  for (const [name, qz] of Object.entries(backup.quizByUser || {})) {
+    const localId = nameToLocalId[name]
+    if (localId && qz) {
+      localStorage.setItem('it-trainer-quiz-' + localId, JSON.stringify(qz))
+      importedQuiz++
+    }
+  }
+  let importedWrong = 0
+  for (const [name, wb] of Object.entries(backup.wrongbookByUser || {})) {
+    const localId = nameToLocalId[name]
+    if (localId && wb) {
+      localStorage.setItem('it-trainer-wrongbook-' + localId, JSON.stringify(wb))
+      importedWrong++
+    }
+  }
 
   saveUsers(users)
-  dataMsg.value = `导入完成：${backup.users.length} 个账户，${importedProgress} 份进度记录。`
+  dataMsg.value = `导入完成：${backup.users.length} 个账户，${importedProgress} 份进度、${importedQuiz} 份成绩、${importedWrong} 份错题本。`
 
   refreshAll()
   window.dispatchEvent(new CustomEvent('it-trainer:user-changed'))
@@ -615,6 +868,113 @@ onUnmounted(() => {
 .dw-verified-link {
   color: inherit;
   text-decoration: underline;
+}
+
+.dw-recovery-btn {
+  font-size: 12px;
+  padding: 2px 8px;
+  margin-left: 6px;
+}
+
+.dw-backup-reminder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px dashed var(--vp-c-warning-1, #d97706);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  margin-bottom: 10px;
+}
+
+/* ======== 测验成绩区 ======== */
+.dw-quiz-summary {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  margin-bottom: 8px;
+}
+.dw-quiz-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.dw-quiz-name {
+  flex: 0 0 150px;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dw-quiz-best {
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+  min-width: 44px;
+  text-align: right;
+}
+.dw-quiz-pass {
+  color: var(--vp-c-green-1, #10b981);
+  font-weight: 600;
+}
+.dw-quiz-weak {
+  font-size: 11px;
+  color: var(--vp-c-warning-1, #d97706);
+}
+.dw-cert-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+/* ======== 证书弹窗 ======== */
+.dw-cert-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 16px;
+}
+.dw-cert-modal {
+  background: var(--vp-c-bg);
+  border-radius: 12px;
+  padding: 18px;
+  width: min(760px, 94vw);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.dw-cert-modal h4 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  border: none;
+  padding: 0;
+  color: var(--vp-c-text-1);
+}
+.dw-cert-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+}
+.dw-cert-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 14px;
+}
+.dw-btn-ghost-cert {
+  background: transparent;
+}
+.dw-cert-note {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--vp-c-text-3);
 }
 
 .dw-data-msg {

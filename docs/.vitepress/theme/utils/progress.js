@@ -6,6 +6,7 @@
 // ============================================================
 
 import { chapterListOf } from './chapters.js'
+import { readStore, writeStore } from './store.js'
 
 export const ACTIVE_USER_KEY = 'it-trainer-active-user-id'
 const PROGRESS_KEY_PREFIX = 'it-trainer-progress-'
@@ -41,15 +42,13 @@ function progressKey(userId) {
 
 export function loadUserProgress(userId) {
   if (!userId) return { pages: {} }
-  try {
-    const raw = JSON.parse(localStorage.getItem(progressKey(userId)) || 'null')
-    if (raw && typeof raw === 'object' && raw.pages) return raw
-  } catch { /* 损坏数据视为空 */ }
+  const raw = readStore(progressKey(userId))
+  if (raw && typeof raw === 'object' && raw.pages) return raw
   return { pages: {} }
 }
 
 export function saveUserProgress(userId, progress) {
-  localStorage.setItem(progressKey(userId), JSON.stringify(progress))
+  writeStore(progressKey(userId), progress, 1)
 }
 
 export function isPageDone(userId, relativePath) {

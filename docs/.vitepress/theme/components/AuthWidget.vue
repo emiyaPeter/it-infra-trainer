@@ -29,7 +29,17 @@
             <input v-model="regForm.confirmPassword" type="password" placeholder="再次输入密码" :disabled="submitting" />
             <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
             <p v-if="successMsg" class="auth-success">{{ successMsg }}</p>
-            <div class="auth-actions">
+            <!-- 注册成功：一次性展示恢复码 -->
+            <div v-if="recoveryCodeShown" class="auth-recovery-box">
+              <p class="auth-recovery-title">🔑 你的账户恢复码（仅显示这一次）</p>
+              <code class="auth-recovery-code">{{ recoveryCodeShown }}</code>
+              <p class="auth-recovery-hint">忘记密码时用它重置。请抄写到安全的地方——关闭后无法再查看（可登录后在仪表盘重新生成，旧码同时失效）。</p>
+              <div class="auth-actions">
+                <button class="auth-submit" @click="copyRecoveryCode">复制恢复码</button>
+                <button class="auth-cancel" @click="closeRecoveryAfterRegister">我已保存，关闭</button>
+              </div>
+            </div>
+            <div v-else class="auth-actions">
               <button class="auth-submit" @click="doRegister" :disabled="submitting">
                 {{ submitting ? '注册中...' : '注册' }}
               </button>
@@ -57,6 +67,63 @@
               </button>
               <button class="auth-cancel" @click="showLoginModal = false">取消</button>
             </div>
+            <p class="auth-forgot-link" @click="openForgotModal">忘记密码？用恢复码重置 →</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== 忘记密码弹窗（恢复码重置） ======== -->
+      <div v-if="showForgotModal" class="auth-modal-overlay" @click.self="showForgotModal = false">
+        <div class="auth-modal">
+          <h3>🔑 忘记密码</h3>
+          <div class="auth-form">
+            <label>姓名</label>
+            <input v-model="forgotForm.name" placeholder="账户姓名" :disabled="submitting" />
+            <label>恢复码</label>
+            <input v-model="forgotForm.code" placeholder="XXXX-XXXX-XXXX-XXXX" :disabled="submitting" />
+            <label>新密码</label>
+            <input v-model="forgotForm.password" type="password" placeholder="至少 6 位" :disabled="submitting"
+              @keyup.enter="doResetPassword" />
+            <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
+            <p v-if="successMsg" class="auth-success">{{ successMsg }}</p>
+            <div class="auth-actions">
+              <button class="auth-submit" @click="doResetPassword" :disabled="submitting">
+                {{ submitting ? '重置中...' : '重置密码' }}
+              </button>
+              <button class="auth-cancel" @click="showForgotModal = false">取消</button>
+            </div>
+            <p class="auth-recovery-hint">没有恢复码？无法找回——数据只存在本浏览器，可用旧备份文件恢复账户后重新生成。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== 恢复码管理弹窗（已登录，仪表盘入口触发） ======== -->
+      <div v-if="showRecoveryModal" class="auth-modal-overlay" @click.self="showRecoveryModal = false">
+        <div class="auth-modal">
+          <h3>🔑 恢复码管理</h3>
+          <div class="auth-form">
+            <div v-if="recoveryCodeShown" class="auth-recovery-box">
+              <p class="auth-recovery-title">新恢复码（仅显示这一次）</p>
+              <code class="auth-recovery-code">{{ recoveryCodeShown }}</code>
+              <p class="auth-recovery-hint">重新生成后旧恢复码立即失效。请妥善保存。</p>
+              <div class="auth-actions">
+                <button class="auth-submit" @click="copyRecoveryCode">复制</button>
+                <button class="auth-cancel" @click="showRecoveryModal = false; recoveryCodeShown = ''">完成</button>
+              </div>
+            </div>
+            <template v-else>
+              <p class="auth-recovery-hint">
+                恢复码用于忘记密码时重置（数据在本浏览器本地，恢复码即"本机钥匙"的备份）。
+                {{ hasRecoveryCode ? '当前账户已有恢复码。' : '当前账户尚未设置恢复码。' }}
+              </p>
+              <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
+              <div class="auth-actions">
+                <button class="auth-submit" @click="regenerateRecoveryCode" :disabled="submitting">
+                  {{ hasRecoveryCode ? '重新生成（旧码失效）' : '生成恢复码' }}
+                </button>
+                <button class="auth-cancel" @click="showRecoveryModal = false">关闭</button>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -256,6 +323,116 @@ const regForm = ref({ name: '', phone: '', password: '', confirmPassword: '' })
 const loginForm = ref({ name: '', password: '' })
 const switchForm = ref({ userId: '', password: '' })
 
+// ======== 恢复码（忘记密码重置用，ADR-011） ========
+const showForgotModal = ref(false)
+const forgotForm = ref({ name: '', code: '', password: '' })
+const showRecoveryModal = ref(false)
+const recoveryCodeShown = ref('')
+
+// 去易混字符（无 I/L/O/0/1）的 32 字符表，16 位 ≈ 80 bit 熵
+const RECOVERY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+function generateRecoveryCode() {
+  const buf = new Uint8Array(16)
+  crypto.getRandomValues(buf)
+  const chars = Array.from(buf, (b) => RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length])
+  return chars.join('').replace(/(.{4})(?=.)/g, '$1-')
+}
+
+async function hashRecovery(code, userId) {
+  const normalized = String(code || '').trim().toUpperCase().replace(/\s+/g, '')
+  return sha256Hex('it-trainer-recovery:' + userId + ':' + normalized)
+}
+
+const hasRecoveryCode = computed(() => {
+  const users = loadUsers()
+  const activeId = loadActiveUserId()
+  const u = users.find(x => String(x.id) === String(activeId))
+  return !!(u && u.recovery_hash)
+})
+
+function openForgotModal() {
+  showLoginModal.value = false
+  forgotForm.value = { name: '', code: '', password: '' }
+  recoveryCodeShown.value = ''
+  clearMessages()
+  showForgotModal.value = true
+}
+
+async function doResetPassword() {
+  clearMessages()
+  const { name, code, password } = forgotForm.value
+  if (!name.trim() || !code.trim() || !password) {
+    errorMsg.value = '请填写姓名、恢复码和新密码'
+    return
+  }
+  if (password.length < 6) {
+    errorMsg.value = '新密码至少 6 位'
+    return
+  }
+  submitting.value = true
+  try {
+    await new Promise(r => setTimeout(r, 300))
+    const users = loadUsers()
+    const candidates = users.filter(u => u.name === name.trim())
+    let target = null
+    for (const u of candidates) {
+      if (u.recovery_hash && (await hashRecovery(code, u.id)) === u.recovery_hash) {
+        target = u
+        break
+      }
+    }
+    if (!target) {
+      errorMsg.value = candidates.length
+        ? '恢复码不正确（或该账户未设置恢复码）'
+        : `未找到用户 "${name.trim()}"`
+      return
+    }
+    target.password_hash = await hashPasswordV2(password, target.id)
+    saveUsers(users)
+    successMsg.value = '密码已重置！请关闭后用新密码登录。'
+    forgotForm.value = { name: '', code: '', password: '' }
+    setTimeout(() => { showForgotModal.value = false; clearMessages(); showLoginModal.value = true }, 1500)
+  } finally {
+    submitting.value = false
+  }
+}
+
+/** 已登录用户重新生成恢复码（旧码立即失效）；由仪表盘按钮经事件总线触发 */
+async function regenerateRecoveryCode() {
+  clearMessages()
+  const users = loadUsers()
+  const activeId = loadActiveUserId()
+  const u = users.find(x => String(x.id) === String(activeId))
+  if (!u) {
+    errorMsg.value = '请先登录'
+    return
+  }
+  submitting.value = true
+  try {
+    const code = generateRecoveryCode()
+    u.recovery_hash = await hashRecovery(code, u.id)
+    saveUsers(users)
+    recoveryCodeShown.value = code
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function copyRecoveryCode() {
+  try {
+    await navigator.clipboard.writeText(recoveryCodeShown.value)
+    successMsg.value = '已复制到剪贴板'
+  } catch {
+    errorMsg.value = '复制失败，请手动抄写'
+  }
+}
+
+function closeRecoveryAfterRegister() {
+  recoveryCodeShown.value = ''
+  showRegisterModal.value = false
+  clearMessages()
+}
+
 const displayUsers = computed(() => {
   return userList.value.filter(u => u.name !== 'default')
 })
@@ -337,6 +514,9 @@ async function doRegister() {
     }
 
     users.push(newUser)
+    // 生成恢复码（只存哈希，明文仅此一次展示）
+    const recoveryCode = generateRecoveryCode()
+    newUser.recovery_hash = await hashRecovery(recoveryCode, newUser.id)
     saveUsers(users)
     saveActiveUserId(newUser.id)
 
@@ -345,7 +525,8 @@ async function doRegister() {
     broadcastUserChange()
     successMsg.value = '注册成功！已自动登录。'
     regForm.value = { name: '', phone: '', password: '', confirmPassword: '' }
-    setTimeout(() => { showRegisterModal.value = false; clearMessages() }, 1500)
+    recoveryCodeShown.value = recoveryCode
+    // 不再自动关闭：等用户保存恢复码后手动点"我已保存，关闭"
   } catch (e) {
     errorMsg.value = '注册失败: ' + e.message
   } finally {
@@ -463,6 +644,13 @@ async function doSwitch() {
 
 onMounted(() => {
   fetchCurrentUser()
+  // 仪表盘"🔑 恢复码"按钮经事件总线打开管理弹窗
+  window.addEventListener('it-trainer:open-recovery', () => {
+    recoveryCodeShown.value = ''
+    clearMessages()
+    showRecoveryModal.value = true
+    fetchCurrentUser()
+  })
 })
 </script>
 
@@ -471,6 +659,50 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* ======== 恢复码 ======== */
+.auth-recovery-box {
+  margin-top: 12px;
+  border: 1px dashed var(--vp-c-brand);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--vp-c-bg-soft);
+}
+.auth-recovery-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+.auth-recovery-code {
+  display: block;
+  text-align: center;
+  font-size: 18px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--vp-c-brand-1, var(--vp-c-brand));
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 8px;
+  user-select: all;
+}
+.auth-recovery-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--vp-c-text-3);
+}
+.auth-forgot-link {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--vp-c-brand-1, var(--vp-c-brand));
+  cursor: pointer;
+  text-align: center;
+}
+.auth-forgot-link:hover {
+  text-decoration: underline;
 }
 
 .auth-user {
