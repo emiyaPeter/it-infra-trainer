@@ -35,7 +35,8 @@ npm run dev           # 启动站点人工验证
 - **站内链接一律用 `withBase()`**（或相对路径）——站点部署在子路径 `/it-infra-trainer/`，硬编码根路径会在生产 404
 - **上线/改版验收必须真截图走查，且覆盖桌面+移动两个断点**——断言不止"无重叠"，还要"无横向溢出、关键交互元素在视口内"；HTTP 200 不等于页面正确（坑 7/9）
 - **Git Bash 下带 `/` 开头的环境变量赋值（如 `BASE_PATH=/xx/`）必须加 `MSYS_NO_PATHCONV=1`**，否则被 MSYS 隐式转换成 Windows 路径写进产物（坑 8）；子路径构建后必须 grep 产物确认无 `Program Files` 字样
-- AI 相关：密钥只经 `npm run set-key` 进 `.env`；Web 端不接 AI（ADR-008）
+- AI 相关：CLI 密钥只经 `npm run set-key` 进 `.env`；Web 端为 BYOK 模式（访客密钥存本机 localStorage `it-trainer-ai-config`，站点代码/仓库零密钥，见 ADR-008 修订版）；判分分层——选择题必本地判，填空题本地优先、AI 只判本地未命中的，AI 判错自动跑对抗审计
+- 题库约定：`quizzes/*.json` 构建时经 `import.meta.glob` 自动进 Web 测验页（新增文件零代码）；顶层 `module` 字段声明对应的 `courses/` 目录名（测验 ≥80 分自动点亮该模块章节）；填空题用 `accepts[]` 列可接受写法；无模块映射的题库为纯练习
 
 ## 排障速查
 
