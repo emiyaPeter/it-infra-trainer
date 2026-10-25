@@ -1,6 +1,6 @@
 ================================================================
    IT 基础设施工程师培训助手 — 迁移文档
-   版本: 2.5 | 更新: 2026-10-25
+   版本: 2.6 | 更新: 2026-10-25
 ================================================================
 
 一、项目概述
@@ -57,8 +57,24 @@ IT Infra Trainer 是一个离线优先的 IT 基础设施培训系统，包含�
   config.json               项目配置文件（dataDir 路径）
   .env                      密钥文件（gitignored，不随项目分发）
 
-四、版本变化 (v1 → v2.5)
+四、版本变化 (v1 → v2.6)
 ────────────────────────────────────────────────────────────
+
+  v2.6 变化:
+    + 题库全模块覆盖: 新增 14 套题库（windows-server/virtualization/
+      docker/ansible/monitoring/cloud/security/dr-backup/kubernetes/
+      terraform/advanced-linux/advanced-networking/repair-basics/
+      cybersecurity），全库 19 套 184 题（v2.5 为 5 套 53 题）
+    + 主观题 AI 判卷: 新题型 short-answer（问答）/ coding（实操），
+      AI 三档计分（1/0.5/0），判 0 分自动对抗审计防错杀；未配密钥
+      转自评模式不计分（无密钥不惩罚，ADR-010）；CLI 端跳过并展示
+      参考答案
+    + 章节级测验入口: 章节页「📝 本章小测」深链 /quiz/?chapter=…；
+      错题本/结果页错题带「📖 回读本章」链接
+    + 零维护加题: 章节数与模块中文名改由 theme/utils/chapters.js 从
+      sidebar 自动反解（PHASE_CATALOG 手工常量退役）；npm test 新增
+      第 3 步题库结构校验（scripts/validate-quizzes.js），加题格式
+      错误测试期即拦截
 
   v2.5 变化:
     + Web 在线测验: 新增 /quiz/ 页面（导航「📝 随堂测验」），
