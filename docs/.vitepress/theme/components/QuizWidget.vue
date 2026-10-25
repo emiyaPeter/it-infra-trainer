@@ -4,6 +4,7 @@
       <h3>📝 随堂测验</h3>
       <div class="qw-tabs">
         <button class="qw-tab" :class="{ 'qw-tab-active': view === 'pick' }" @click="goPick">题库</button>
+        <button class="qw-tab" :class="{ 'qw-tab-active': view === 'exam' }" @click="view = 'exam'">🎯 模拟考</button>
         <button class="qw-tab" :class="{ 'qw-tab-active': view === 'wrongbook' }" @click="view = 'wrongbook'">
           错题本
           <span v-if="wrongItems.length" class="qw-tab-badge">{{ wrongItems.length }}</span>
@@ -23,7 +24,32 @@
       <div v-if="!currentUser" class="qw-login-hint">
         当前未登录：可以正常做题，但成绩、错题本和达标点亮不会保存。点右上角「注册/登录」后记录会按账户保存。
       </div>
-      <div class="qw-grid">
+      <!-- AI 引导（未配密钥时展示，提升发现性） -->
+      <div v-if="!aiReady" class="qw-ai-banner">
+        🤖 配置 AI 密钥可解锁：<b>问答/实操题 AI 判卷</b>、<b>错题针对性精讲</b>（密钥只存你本机浏览器，站点零密钥）。
+        <button class="qw-btn qw-btn-primary qw-ai-banner-btn" @click="openAiSettings">点此配置</button>
+      </div>
+      <!-- 题目搜索：题干/选项/解析/参考答案 全文过滤 -->
+      <div class="qw-search">
+        <input
+          v-model="searchText"
+          class="qw-fill-input qw-search-input"
+          placeholder="🔎 搜索题目或知识点（如：子网、chmod、RAID）"
+        />
+      </div>
+      <div v-if="searchText.trim()" class="qw-search-results">
+        <p v-if="!searchResults.length" class="qw-empty">没有匹配「{{ searchText.trim() }}」的题目</p>
+        <div
+          v-for="r in searchResults"
+          :key="r.quizId + '/' + r.q.id"
+          class="qw-search-item"
+          @click="startQuiz(r.quiz, 'full')"
+        >
+          <span class="qw-search-source">{{ r.quiz.title }} · {{ typeLabel(r.q) }}</span>
+          <span class="qw-search-q">{{ r.q.question }}</span>
+        </div>
+      </div>
+      <div v-else class="qw-grid">
         <div v-for="qz in quizzes" :key="qz.id" class="qw-card" @click="startQuiz(qz, 'full')">
           <div class="qw-card-title">{{ qz.title }}</div>
           <div class="qw-card-meta">
@@ -37,6 +63,9 @@
         </div>
       </div>
     </div>
+
+    <!-- ============ 模拟考试 ============ -->
+    <ExamPanel v-else-if="view === 'exam'" @exit="goPick" />
 
     <!-- ============ 答题 ============ -->
     <div v-else-if="view === 'quiz'" class="qw-quiz">
@@ -244,6 +273,9 @@
           <input v-model="aiForm.apiKey" type="password" class="qw-input" placeholder="sk-…（输入时隐藏）" />
         </label>
         <div class="qw-modal-actions">
+          <button class="qw-btn qw-btn-ghost" :disabled="testingConn" @click="testConnection">
+            {{ testingConn ? '测试中…' : '🔌 测试连接' }}
+          </button>
           <button v-if="aiConfig.apiKey" class="qw-btn qw-btn-danger" @click="clearAiConfig">清除密钥</button>
           <span class="qw-spacer"></span>
           <button class="qw-btn qw-btn-ghost" @click="showAiSettings = false">取消</button>
@@ -261,6 +293,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { withBase } from 'vitepress'
 import { ACTIVE_USER_KEY, setPageDone } from '../utils/progress.js'
 import { QUIZZES, CHAPTER_QUESTIONS, chapterListOf, moduleTitleOf, chapterTitleOf } from '../utils/chapters.js'
+import { readStore, writeStore } from '../utils/store.js'
+import { createCallAI, gradeFill, gradeSubjective, VERDICT_POINTS, normalizeAnswer } from '../utils/grading.js'
+import ExamPanel from './ExamPanel.vue'
 
 const quizzes = QUIZZES
 
@@ -296,14 +331,72 @@ function typeLabel(q) {
 function isSubjective(q) {
   return q && (q.type === 'short-answer' || q.type === 'coding')
 }
-function normalizeAnswer(s) {
-  return String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ')
-}
 function correctDisplay(q) {
   return q.type === 'multiple-choice' ? q.options[q.correct] : q.correct
 }
 function chapterHref(slug) {
   return withBase('/' + slug.replace(/\.md$/, ''))
+}
+
+// ============================================================
+// 题目搜索（客户端全库过滤：题干/选项/解析/参考答案）
+// ============================================================
+const searchText = ref('')
+const searchResults = computed(() => {
+  const kw = searchText.value.trim().toLowerCase()
+  if (!kw) return []
+  const out = []
+  for (const qz of quizzes) {
+    for (const q of qz.questions || []) {
+      const haystack = [
+        q.question,
+        ...(q.options || []),
+        q.explanation || '',
+        q.reference || '',
+        q.correct !== undefined && q.type !== 'multiple-choice' ? String(q.correct) : '',
+      ].join('\n').toLowerCase()
+      if (haystack.includes(kw)) {
+        out.push({ quiz: qz, quizId: qz.id, q })
+        if (out.length >= 20) return out
+      }
+    }
+  }
+  return out
+})
+
+// ============================================================
+// AI 测试连接（用表单当前值直接探测，不必先保存）
+// ============================================================
+const testingConn = ref(false)
+async function testConnection() {
+  const { baseUrl, model, apiKey } = aiForm.value
+  if (!apiKey.trim()) {
+    showToast('请先填写密钥再测试')
+    return
+  }
+  testingConn.value = true
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 10000)
+  try {
+    const res = await fetch(String(baseUrl).replace(/\/+$/, '') + '/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey.trim() },
+      body: JSON.stringify({
+        model: model || 'deepseek-chat',
+        temperature: 0,
+        max_tokens: 8,
+        messages: [{ role: 'user', content: 'ping，只回复 pong' }],
+      }),
+      signal: ctrl.signal,
+    })
+    if (!res.ok) throw new Error('HTTP ' + res.status + (res.status === 401 ? '（密钥无效）' : '（检查地址/模型名）'))
+    showToast('✅ 连接成功，配置可用')
+  } catch (e) {
+    showToast('❌ 连接失败：' + (e && e.message ? e.message : '网络问题'))
+  } finally {
+    clearTimeout(timer)
+    testingConn.value = false
+  }
 }
 
 // ============================================================
@@ -331,28 +424,20 @@ function loadStores() {
     return
   }
   const uid = currentUser.value.id
-  try {
-    const q = JSON.parse(localStorage.getItem(QUIZ_KEY_PREFIX + uid) || 'null')
-    quizStore.value = q && Array.isArray(q.attempts) ? q : { attempts: [], verifiedModules: [] }
-    if (!Array.isArray(quizStore.value.verifiedModules)) quizStore.value.verifiedModules = []
-  } catch {
-    quizStore.value = { attempts: [], verifiedModules: [] }
-  }
-  try {
-    const w = JSON.parse(localStorage.getItem(WRONG_KEY_PREFIX + uid) || 'null')
-    wrongItems.value = Array.isArray(w) ? w.map((it) => ({ ...it, open: false, explaining: false })) : []
-  } catch {
-    wrongItems.value = []
-  }
+  const q = readStore(QUIZ_KEY_PREFIX + uid)
+  quizStore.value = q && Array.isArray(q.attempts) ? q : { attempts: [], verifiedModules: [] }
+  if (!Array.isArray(quizStore.value.verifiedModules)) quizStore.value.verifiedModules = []
+  const w = readStore(WRONG_KEY_PREFIX + uid)
+  wrongItems.value = Array.isArray(w) ? w.map((it) => ({ ...it, open: false, explaining: false })) : []
 }
 
 function persistQuizStore() {
   if (!currentUser.value) return
-  localStorage.setItem(QUIZ_KEY_PREFIX + currentUser.value.id, JSON.stringify(quizStore.value))
+  writeStore(QUIZ_KEY_PREFIX + currentUser.value.id, quizStore.value, 1)
 }
 function persistWrongItems() {
   if (!currentUser.value) return
-  localStorage.setItem(WRONG_KEY_PREFIX + currentUser.value.id, JSON.stringify(wrongItems.value))
+  writeStore(WRONG_KEY_PREFIX + currentUser.value.id, wrongItems.value, 1)
 }
 
 // ============================================================
@@ -416,139 +501,8 @@ function clearAiConfig() {
   showToast('已清除，问答/实操题将转为自评模式')
 }
 
-/** OpenAI 兼容 chat 调用；失败抛错由调用方降级 */
-async function callAI(systemPrompt, userContent, timeoutMs = 15000) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
-  try {
-    const res = await fetch(String(aiConfig.value.baseUrl).replace(/\/+$/, '') + '/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + aiConfig.value.apiKey,
-      },
-      body: JSON.stringify({
-        model: aiConfig.value.model,
-        temperature: 0,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-      }),
-      signal: ctrl.signal,
-    })
-    if (!res.ok) throw new Error('HTTP ' + res.status)
-    const data = await res.json()
-    const text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content
-    if (!text) throw new Error('empty reply')
-    return text
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-function parseVerdictJson(text) {
-  const m = String(text).match(/\{[\s\S]*?\}/)
-  if (!m) return null
-  try {
-    const j = JSON.parse(m[0])
-    const verdict = String(j.verdict || '').toLowerCase()
-    if (['correct', 'partial', 'incorrect'].includes(verdict)) {
-      return { verdict, reason: String(j.reason || '').slice(0, 300) }
-    }
-  } catch { /* 容忍模型输出多余文字 */ }
-  return null
-}
-
-// ============================================================
-// 分层判分 — 客观题（选择题/填空题）
-// Tier0 本地归一化比对；Tier1 AI 初判；Tier2 对抗审计（仅初判为错时）
-// ============================================================
-const TIER1_SYSTEM =
-  '你是严格的考试判分器。给定题目、标准答案（含可接受变体）和学生答案，判断学生答案与标准答案是否语义等价：' +
-  '同义写法、命令等效、可忽略的大小写/顺序差异应判对；概念错误、缺关键参数应判错。' +
-  '只输出 JSON：{"verdict":"correct 或 incorrect","reason":"一句话理由"}'
-
-const TIER2_SYSTEM =
-  '你是对抗性复审员。此前的判分器把学生答案判为错误。请专门寻找该答案与标准答案等价的合理依据：' +
-  '同义改写、等效命令、可忽略的拼写/顺序/单位差异。只要存在任何合理解读使二者等价，就推翻为 correct。' +
-  '确认不等价才维持 incorrect。只输出 JSON：{"verdict":"correct 或 incorrect","reason":"一句话理由"}'
-
-async function gradeFill(q, answer) {
-  const candidates = [q.correct, ...(q.accepts || [])].map(normalizeAnswer)
-  if (candidates.includes(normalizeAnswer(answer))) {
-    return { correct: true, src: 'local', selfMode: false }
-  }
-  if (!aiReady.value) {
-    return { correct: false, src: 'local', selfMode: false }
-  }
-  const fact =
-    `题目：${q.question}\n标准答案：${q.correct}\n可接受变体：${(q.accepts || []).join('；') || '无'}\n学生答案：${answer}`
-  let first
-  try {
-    first = parseVerdictJson(await callAI(TIER1_SYSTEM, fact))
-  } catch {
-    return { correct: false, src: 'local-fallback', selfMode: false }
-  }
-  if (!first) return { correct: false, src: 'local-fallback', selfMode: false }
-  if (first.verdict === 'correct') {
-    return { correct: true, src: 'ai', selfMode: false, aiReason: first.reason }
-  }
-  try {
-    const second = parseVerdictJson(
-      await callAI(TIER2_SYSTEM, fact + '\n初判理由：' + first.reason + '\n请复审。')
-    )
-    if (second && second.verdict === 'correct') {
-      return { correct: true, src: 'audit', selfMode: false, aiReason: '审计推翻初判：' + second.reason }
-    }
-    return { correct: false, src: 'ai+audit', selfMode: false, aiReason: first.reason }
-  } catch {
-    return { correct: false, src: 'ai', selfMode: false, aiReason: first.reason }
-  }
-}
-
-// ============================================================
-// 分层判分 — 主观题（问答题/实操题，AI 判卷三档 + 对抗审计）
-// 无密钥/AI 不可用 → 自评模式（不计分，见 ADR-010）
-// ============================================================
-const SUBJ_SYSTEM =
-  '你是严格的阅卷老师。给定题目、参考答案要点和学生的作答，按三档判分：' +
-  'correct=覆盖了主要要点且无明显错误；partial=方向正确但缺关键要点或有次要错误；incorrect=概念错误或未涉及要点。' +
-  '只输出 JSON：{"verdict":"correct、partial 或 incorrect","reason":"两句话以内，指出对在哪里/缺了什么"}'
-
-const SUBJ_AUDIT_SYSTEM =
-  '你是对抗性复审员。此前的阅卷老师把学生作答判为 incorrect。请专门寻找应得部分分或全分的依据：' +
-  '要点部分覆盖、思路正确但表述不同、仅非核心细节有误。可推翻为 partial 或 correct。' +
-  '确认不及格才维持 incorrect。只输出 JSON：{"verdict":"correct、partial 或 incorrect","reason":"一句话理由"}'
-
-async function gradeSubjective(q, answer) {
-  if (!aiReady.value) {
-    return { selfMode: true, src: 'self', verdict: 'incorrect', aiReason: '' }
-  }
-  const fact =
-    `题目：${q.question}\n参考答案要点：${q.reference}\n学生作答：${answer}`
-  let first
-  try {
-    first = parseVerdictJson(await callAI(SUBJ_SYSTEM, fact, 20000))
-  } catch {
-    return { selfMode: true, src: 'self-fallback', verdict: 'incorrect', aiReason: '' }
-  }
-  if (!first) return { selfMode: true, src: 'self-fallback', verdict: 'incorrect', aiReason: '' }
-  if (first.verdict !== 'incorrect') {
-    return { selfMode: false, src: 'ai', verdict: first.verdict, aiReason: first.reason }
-  }
-  try {
-    const second = parseVerdictJson(
-      await callAI(SUBJ_AUDIT_SYSTEM, fact + '\n初判理由：' + first.reason + '\n请复审。', 20000)
-    )
-    if (second && second.verdict !== 'incorrect') {
-      return { selfMode: false, src: 'ai-audit', verdict: second.verdict, aiReason: '审计改判：' + second.reason }
-    }
-  } catch { /* 审计失败维持初判 */ }
-  return { selfMode: false, src: 'ai', verdict: 'incorrect', aiReason: first.reason }
-}
-
-const VERDICT_POINTS = { correct: 1, partial: 0.5, incorrect: 0 }
+/** OpenAI 兼容调用（判分模块注入）；失败抛错由调用方降级 */
+const callAI = (system, user, timeout) => createCallAI(aiConfig.value)(system, user, timeout)
 
 function judgeSrcLabel(j) {
   switch (j.src) {
@@ -685,7 +639,7 @@ async function submitFill() {
   grading.value = true
   let judge
   try {
-    judge = await gradeFill(q, answer)
+    judge = await gradeFill(q, answer, aiReady.value ? callAI : null)
   } catch {
     judge = { correct: false, src: 'local-fallback', selfMode: false }
   }
@@ -700,7 +654,7 @@ async function submitSubjective() {
   grading.value = true
   let judge
   try {
-    judge = await gradeSubjective(q, answer)
+    judge = await gradeSubjective(q, answer, aiReady.value ? callAI : null)
   } catch {
     judge = { selfMode: true, src: 'self-fallback', verdict: 'incorrect', aiReason: '' }
   }
@@ -1034,6 +988,62 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--vp-c-text-2);
   margin-bottom: 12px;
+}
+
+/* ---- AI 引导条 / 题目搜索 ---- */
+.qw-ai-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px dashed var(--vp-c-brand-1);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  margin-bottom: 12px;
+}
+.qw-ai-banner b {
+  color: var(--vp-c-brand-1);
+}
+.qw-ai-banner-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+.qw-search {
+  margin-bottom: 12px;
+}
+.qw-search-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.qw-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.qw-search-item {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.qw-search-item:hover {
+  border-color: var(--vp-c-brand-1);
+}
+.qw-search-source {
+  display: block;
+  font-size: 11px;
+  color: var(--vp-c-text-3);
+  margin-bottom: 3px;
+}
+.qw-search-q {
+  display: block;
+  font-size: 13px;
+  color: var(--vp-c-text-1);
+  line-height: 1.6;
 }
 
 /* ---- 题库卡片 ---- */
