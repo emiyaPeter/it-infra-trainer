@@ -35,7 +35,10 @@ npm run dev           # 启动站点人工验证
 - **站内链接一律用 `withBase()`**（或相对路径）——站点部署在子路径 `/it-infra-trainer/`，硬编码根路径会在生产 404
 - **上线/改版验收必须真截图走查，且覆盖桌面+移动两个断点**——断言不止"无重叠"，还要"无横向溢出、关键交互元素在视口内"；HTTP 200 不等于页面正确（坑 7/9）
 - **Git Bash 下带 `/` 开头的环境变量赋值（如 `BASE_PATH=/xx/`）必须加 `MSYS_NO_PATHCONV=1`**，否则被 MSYS 隐式转换成 Windows 路径写进产物（坑 8）；子路径构建后必须 grep 产物确认无 `Program Files` 字样
-- AI 相关：CLI 密钥只经 `npm run set-key` 进 `.env`；Web 端为 BYOK 模式（访客密钥存本机 localStorage `it-trainer-ai-config`，站点代码/仓库零密钥，见 ADR-008 修订版）；判分分层——选择题必本地判，填空题本地优先、AI 只判本地未命中的，AI 判错自动跑对抗审计
+- AI 相关：CLI 密钥只经 `npm run set-key` 进 `.env`；Web 端为 BYOK 模式（访客密钥存本机 localStorage `it-trainer-ai-config`，站点代码/仓库零密钥，见 ADR-008 修订版）；判分分层——选择题必本地判，填空题本地优先、AI 只判本地未命中的，AI 判错自动跑对抗审计（判分逻辑在 `theme/utils/grading.js` 纯函数，改判分规则改这里）
+- localStorage 一律经 `theme/utils/store.js` 读写（`_v` 信封 + 迁移钩子），不要直接 `JSON.parse(localStorage...)` 新增存储；备份格式 v2（users+progress+quiz+wrongbook，导入兼容 v1）
+- E2E：`npm run test:e2e`（前提 dist 为子路径构建；本地 Windows 用 `E2E_CHANNEL=msedge` 复用系统 Edge，CI 装 chromium）；改测验/进度/判分相关代码后必须跑；新增用户旅程时在 `test/e2e.mjs` 加断言
+- 账户安全：恢复码只存哈希（ADR-011）；**明文恢复码不得写日志/备份明文/localStorage**
 - 题库约定：`quizzes/*.json` 构建时经 `import.meta.glob` 自动进 Web 测验页（新增文件零代码）；顶层 `module` 字段声明对应的 `courses/` 目录名（测验 ≥80 分自动点亮该模块章节）；填空题用 `accepts[]` 列可接受写法；无模块映射的题库为纯练习。**题型**：multiple-choice / fill-blank（本地判分）+ short-answer / coding（主观题：`reference` 必填字符串参考要点，AI 判卷三档，无密钥转自评不计分，见 ADR-010）；题目可带 `chapter` 字段（`courses/<mod>/<file>.md`）联动章节页"本章小测"入口与错题回读。**结构错误由 `npm test` 第 3 步题库校验拦截**（scripts/validate-quizzes.js）
 - 章节数/模块名**全部自动**：`theme/utils/chapters.js` 从 config.ts sidebar 反解（加章节只需改 sidebar——本来就要改）；不要再手工维护章节数常量
 
