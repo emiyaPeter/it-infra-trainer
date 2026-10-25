@@ -19,5 +19,29 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
-      - name: 冒烟自检（语法 + CLI + 生产构建）
+      - name: 冒烟自检（语法 + CLI + 题库校验 + 生产构建）
         run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖（含 Playwright）
+        run: npm ci
+
+      - name: 安装 Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: 子路径构建
+        run: npm run docs:build
+        env:
+          BASE_PATH: /it-infra-trainer/
+
+      - name: E2E 旅程测试（标记→进度 / 达标→点亮 / 自评不计分）
+        run: npm run test:e2e

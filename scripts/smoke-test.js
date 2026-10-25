@@ -37,11 +37,15 @@ const CHECK_FILES = [
   'src/cli/commands/user.js',
   'src/cli/commands/export-progress.js',
   'src/cli/commands/ask.js',
-  'src/server/auth-server.js',
   'scripts/validate-quizzes.js',
+  'test/e2e.mjs',
   'docs/.vitepress/theme/utils/chapters.js',
+  'docs/.vitepress/theme/utils/store.js',
+  'docs/.vitepress/theme/utils/grading.js',
+  'docs/.vitepress/theme/utils/report.js',
   'docs/quiz/index.md',
   'docs/.vitepress/theme/components/QuizWidget.vue',
+  'docs/.vitepress/theme/components/ExamPanel.vue',
 ];
 
 // CLI 冒烟：非交互命令必须退出码 0
