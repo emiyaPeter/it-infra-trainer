@@ -21,7 +21,7 @@
     {
       "id": "q2",
       "type": "multiple-choice",
-      "question": "关于资源超分（Overcommit），课程给出的经验比例是什么？",
+      "question": "关于虚拟化环境中的资源超分（Overcommit），业界常用的经验比例是什么？",
       "options": [
         "CPU 按 3:1 ~ 5:1 超分，内存不超过物理总量",
         "CPU 可以无限超分，反正 VM 不会同时用满",
@@ -29,7 +29,7 @@
         "超分只对 Type 2 Hypervisor 有意义，Type 1 不允许超分"
       ],
       "correct": 0,
-      "explanation": "物理 24 核可以分配 100+ vCPU，是因为 VM 不会同时用满，但过度超分会导致性能雪崩；课程给出的经验比例是 CPU 3:1~5:1、内存不超过物理总量。超分与 Hypervisor 类型无关，任何类型过度超分都会出问题。",
+      "explanation": "物理 24 核可以分配 100+ vCPU，是因为 VM 不会同时用满，但过度超分会导致性能雪崩；业界经验比例是 CPU 3:1~5:1、内存不超过物理总量。超分与 Hypervisor 类型无关，任何类型过度超分都会出问题。",
       "chapter": "courses/virtualization/01-concepts.md"
     },
     {
@@ -57,7 +57,7 @@
         "克隆出来的两台 VM 不能同时开机运行"
       ],
       "correct": 0,
-      "explanation": "快照=保存当前状态，随时回滚，典型生产场景是升级前拍快照、失败秒级回滚；克隆=复制一台完全相同的 VM。快照可以拍多个，克隆出的 VM 也是可以同时运行的独立机器。",
+      "explanation": "快照=保存当前状态，随时回滚，典型场景是升级前拍快照、失败秒级回滚；克隆=复制一台完全相同的 VM。快照可以拍多个，克隆出的 VM 也是可以同时运行的独立机器。",
       "chapter": "courses/virtualization/02-virtualbox.md"
     },
     {
@@ -66,11 +66,11 @@
       "question": "vSphere 架构中，ESXi 和 vCenter 分别是什么角色？",
       "options": [
         "vCenter 直接安装在裸金属服务器上，ESXi 跑在它上面",
-        "ESXi 是直接装在裸金属服务器上的 Type 1 Hypervisor；vCenter 是管理平台，统一管理多台 ESXi 主机",
-        "vCenter 是 ESXi 的免费替代品，两者功能完全相同",
-        "ESXi 只是 vCenter 的一个图形客户端插件"
+        "vCenter 是 ESXi 的免费替代品，单主机场景两者功能完全相同",
+        "ESXi 只是 vCenter 的一个图形客户端插件，负责展示界面",
+        "ESXi 是裸金属上的 Type 1 Hypervisor；vCenter 负责统一管理多台 ESXi 主机"
       ],
-      "correct": 1,
+      "correct": 3,
       "explanation": "ESXi 是 Type 1 Hypervisor，直接装在裸金属服务器上承载 VM；vCenter 是管理平台，用来统一管理多台 ESXi 主机（如多个集群加共享存储的典型架构）。二者是管理与被管理的关系，不是替代关系，也不是插件关系。",
       "chapter": "courses/virtualization/03-vmware.md"
     },
@@ -93,13 +93,13 @@
       "type": "multiple-choice",
       "question": "在 Linux 上执行 egrep -c '(vmx|svm)' /proc/cpuinfo 检查 CPU 虚拟化支持，其中 vmx 和 svm 分别代表什么？",
       "options": [
-        "vmx 是 Intel CPU 的虚拟化标志，svm 是 AMD CPU 的虚拟化标志，统计结果大于 0 表示支持虚拟化",
-        "vmx 和 svm 是两种虚拟内存交换技术",
-        "vmx 和 svm 是 KVM 的两个内核模块名称",
-        "vmx 和 svm 是 qemu 的版本号，数字越大版本越新"
+        "vmx 和 svm 是两种虚拟内存交换（swap）技术的名称",
+        "vmx 和 svm 是 KVM 加载的两个内核模块的名称",
+        "vmx 和 svm 是 qemu 的版本号，数值越大表示版本越新",
+        "vmx 是 Intel 的虚拟化标志，svm 是 AMD 的，统计结果大于 0 表示支持虚拟化"
       ],
-      "correct": 0,
-      "explanation": "vmx 对应 Intel、svm 对应 AMD 的硬件虚拟化标志，egrep -c 的输出大于 0 表示该 CPU 支持 KVM 虚拟化。它们与内存交换技术、内核模块名或版本号都无关。",
+      "correct": 3,
+      "explanation": "vmx 对应 Intel、svm 对应 AMD 的硬件虚拟化标志，egrep -c 的输出大于 0 表示该 CPU 支持 KVM 虚拟化。它们与内存交换技术、KVM 内核模块名或 qemu 版本号都无关。",
       "chapter": "courses/virtualization/04-kvm-cloud.md"
     },
     {
@@ -119,7 +119,7 @@
     {
       "id": "q9",
       "type": "short-answer",
-      "question": "情境：同事问你：\"公司机房服务器上装的 ESXi，和我自己电脑上装的 VirtualBox，是不是一回事？\"请用课程所学回答：Type 1 与 Type 2 Hypervisor 各自的运行位置、代表产品和性能差异是什么？为什么企业数据中心和个人学习会做出不同的选择？",
+      "question": "情境：同事问你：\"公司机房服务器上装的 ESXi，和我自己电脑上装的 VirtualBox，是不是一回事？\"请解释：Type 1 与 Type 2 Hypervisor 各自的运行位置、代表产品和性能差异是什么？为什么企业数据中心和个人学习会做出不同的选择？",
       "reference": "要点：1) 二者都是 Hypervisor：在同一台物理机上模拟 CPU、内存、磁盘、网卡，同时运行多台 VM；2) Type 1（裸机型）直接运行在物理硬件上，代表产品 ESXi、KVM、Hyper-V，性能接近物理机；3) Type 2（托管型）运行在操作系统之上，代表产品 VirtualBox、VMware Workstation，性能有损耗；4) 企业数据中心选 Type 1：性能和稳定性更好，还能按 CPU 3:1~5:1、内存不超过物理总量的经验比例做超分，提高硬件利用率；5) 个人学习选 Type 2：免费、安装简单、不改动硬件环境，适合做实验。",
       "chapter": "courses/virtualization/01-concepts.md"
     }

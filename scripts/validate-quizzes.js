@@ -13,6 +13,7 @@ const QUIZ_DIR = path.join(ROOT, 'quizzes')
 const DOCS = path.join(ROOT, 'docs')
 
 const errors = []
+const warnings = []
 const seenQuestions = new Map() // 题干 → 出现位置（跨文件查重）
 const VALID_TYPES = ['multiple-choice', 'fill-blank', 'short-answer', 'coding']
 const files = fs.readdirSync(QUIZ_DIR).filter((f) => f.endsWith('.json')).sort()
@@ -82,11 +83,33 @@ for (const file of files) {
       seenQuestions.set(stem, file + '/' + q.id)
     }
   }
+
+  // ---- 测评效度护栏（v2.8，源自审校发现：全选 A 可攻破达标）----
+  // 1) 选择题 correct 索引分布：≥6 道选择题的卷，不同索引不得少于 3 个（全同直接错）
+  const mcCorrect = quiz.questions.filter((q) => q.type === 'multiple-choice').map((q) => q.correct)
+  if (mcCorrect.length >= 6 && new Set(mcCorrect).size < 3) {
+    errors.push(where(`选择题正确索引分布失衡（${mcCorrect.length} 题仅 ${new Set(mcCorrect).size} 个不同索引）——连点同一选项即可刷分`))
+  }
+  // 2) 长度偏向告警：正确项显著最长（>1.7× 干扰项均值）可被"选最长的"猜中
+  for (const [i, q] of quiz.questions.entries()) {
+    if (q.type !== 'multiple-choice' || !Array.isArray(q.options)) continue
+    const correctLen = String(q.options[q.correct] || '').length
+    const distractors = q.options.filter((_, idx) => idx !== q.correct).map((o) => String(o).length)
+    if (!distractors.length) continue
+    const avg = distractors.reduce((s, n) => s + n, 0) / distractors.length
+    if (correctLen > 17 && correctLen > avg * 1.7) {
+      warnings.push(`${file} 第 ${i + 1} 题(${q.id}): 正确项显著长于干扰项均值（${correctLen} vs ${Math.round(avg)}），易被"选最长"策略猜中`)
+    }
+  }
 }
 
+if (warnings.length) {
+  console.warn(`⚠️ 效度告警 ${warnings.length} 处（不阻塞，但建议修）:`)
+  for (const w of warnings) console.warn('  - ' + w)
+}
 if (errors.length) {
   console.error(`❌ 题库校验未通过（${errors.length} 处）：`)
   for (const e of errors) console.error('  - ' + e)
   process.exit(1)
 }
-console.log(`✅ 题库校验通过：${files.length} 个题库、${seenQuestions.size} 道题（含 chapter 锚点与题型结构）`)
+console.log(`✅ 题库校验通过：${files.length} 个题库、${seenQuestions.size} 道题（含 chapter 锚点、题型结构与效度护栏）`)

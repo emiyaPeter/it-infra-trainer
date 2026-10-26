@@ -15,7 +15,7 @@
         "告警规则"
       ],
       "correct": 1,
-      "explanation": "三大支柱各有分工：Metrics 答'系统现在状态如何'，Logs 答'发生了什么'，Traces 答'请求走了哪些服务'，报错细节要看日志（ELK/Loki）。D 告警规则只是监控的配置，不属于三大支柱。",
+      "explanation": "三大支柱各有分工：Metrics 答'系统现在状态如何'，Logs 答'发生了什么'，Traces 答'请求走了哪些服务'，报错细节要看日志（ELK/Loki）。告警规则只是监控的配置，不属于三大支柱。",
       "chapter": "courses/monitoring/01-monitoring-concepts.md"
     },
     {
@@ -51,27 +51,27 @@
       "type": "multiple-choice",
       "question": "PromQL 查询 `rate(node_cpu_seconds_total[5m])` 中，rate() 函数的作用是什么？",
       "options": [
-        "计算计数器在时间窗口内的增长率，把一直累加的值转成速率",
-        "给所有指标打一个综合评分",
-        "只保留最近 5 秒钟的数据",
-        "远程重启 Prometheus 服务"
+        "给查询涉及的所有指标打出一个综合健康评分",
+        "只保留最近 5 秒内的采样点，丢弃更早的数据",
+        "计算计数器在时间窗口内的增长率，把持续累加的值转成速率",
+        "远程重启 Prometheus 服务，让它重新加载配置文件"
       ],
-      "correct": 0,
-      "explanation": "CPU 时间这类 counter 是持续累加的，直接看没有意义，rate() 取 5 分钟窗口算出每秒增长率才能反映真实使用情况，课程用它配合 mode=\"idle\" 求出 CPU 使用百分比。B/C/D 都不是 rate() 的功能，C 还混淆了 5m 和 5s。",
+      "correct": 2,
+      "explanation": "CPU 时间这类 counter 是持续累加的，直接看没有意义，rate() 取时间窗口（如 5m）算出每秒增长率才能反映真实使用情况，常配合 mode=\"idle\" 求出 CPU 使用百分比。打分、截取数据、重启服务都不是 rate() 的功能；注意 [5m] 是 5 分钟窗口，不是 5 秒。",
       "chapter": "courses/monitoring/02-prometheus.md"
     },
     {
       "id": "q5",
       "type": "multiple-choice",
-      "question": "刚装好 Grafana 并接入 Prometheus 数据源，想最快看到一台 Linux 服务器的完整监控图表，课程推荐的做法是？",
+      "question": "刚装好 Grafana 并接入 Prometheus 数据源，想最快看到一台 Linux 服务器的完整监控图表，最省力的做法是？",
       "options": [
-        "从零开始手工一个个创建面板",
+        "从零开始手工逐个创建面板，可控性最强也最严谨",
+        "卸载重装 Grafana，重启后它会自动生成默认监控面板",
         "导入社区仪表盘 Node Exporter Full（ID 1860）",
-        "把 Grafana 卸载重装一遍",
-        "把数据导出到 Excel 里画图"
+        "写脚本把指标导出到 Excel 里，再用数据透视表绘图"
       ],
-      "correct": 1,
-      "explanation": "Grafana.com 有数千个免费社区面板，点 Import 输入 1860、选择 Prometheus 数据源，立刻得到完整的服务器监控视图。手工逐个建面板费时费力；C/D 与可视化效率背道而驰。",
+      "correct": 2,
+      "explanation": "Grafana.com 有数千个免费社区仪表盘，点 Import 输入 1860、选择 Prometheus 数据源，立刻得到完整的服务器监控视图。手工逐个建面板费时费力；重装并不会自动生成面板；导出 Excel 画图则脱离了实时监控的用途。",
       "chapter": "courses/monitoring/03-grafana.md"
     },
     {
@@ -85,7 +85,7 @@
         "磁盘写入速度超过每秒 10MB 时触发告警"
       ],
       "correct": 0,
-      "explanation": "filesystem 系列指标针对磁盘文件系统：根分区可用字节除以总字节小于 0.1，就是'磁盘不足 10%'。内存要用 memory 系列指标，CPU 要用 cpu 系列，D 则完全是无中生有的解读。",
+      "explanation": "filesystem 系列指标针对磁盘文件系统：根分区可用字节除以总字节小于 0.1，就是'磁盘不足 10%'。内存要用 memory 系列指标，CPU 要用 cpu 系列，'磁盘写入速度超过 10MB'则是对指标名的错误解读。",
       "chapter": "courses/monitoring/03-grafana.md"
     },
     {
@@ -93,27 +93,27 @@
       "type": "multiple-choice",
       "question": "ELK 日志平台中，一条日志的正确流转顺序是？",
       "options": [
-        "App → Filebeat → Logstash → Elasticsearch → Kibana",
         "App → Kibana → Elasticsearch → Logstash → Filebeat",
         "App → Elasticsearch → Filebeat → Logstash → Kibana",
-        "App → Logstash → Filebeat → Kibana → Elasticsearch"
+        "App → Logstash → Filebeat → Kibana → Elasticsearch",
+        "App → Filebeat → Logstash → Elasticsearch → Kibana"
       ],
-      "correct": 0,
-      "explanation": "按角色记最牢：Filebeat 在应用服务器上采集日志，Logstash 负责加工处理，Elasticsearch 负责存储，Kibana 负责搜索展示。B/C/D 都把'展示的 Kibana'和'采集的 Filebeat'放错了位置。",
+      "correct": 3,
+      "explanation": "按角色记最牢：Filebeat 在应用服务器上采集日志，Logstash 负责加工处理，Elasticsearch 负责存储，Kibana 负责搜索展示。其余选项都把'负责采集的 Filebeat'和'负责展示的 Kibana'放错了位置。",
       "chapter": "courses/monitoring/04-elk.md"
     },
     {
       "id": "q8",
       "type": "multiple-choice",
-      "question": "课程指出 ELK 集中管理日志的核心价值是什么？",
+      "question": "ELK 这类集中式日志平台的核心价值是什么？",
       "options": [
-        "100 台服务器的日志在一个搜索框里查，不用再一台台 SSH 上去找",
-        "能自动发现并修复所有应用故障",
-        "可以完全替代数据备份",
-        "让服务器的 CPU 运行得更快"
+        "百台服务器的日志集中到一个搜索框里查，无需逐台 SSH 登录",
+        "能自动发现应用故障的根因，并自动执行修复动作",
+        "日志集中存储后，即可完全替代数据库与文件的数据备份",
+        "集中采集日志能降低服务器负载，让 CPU 运行得更快"
       ],
       "correct": 0,
-      "explanation": "集中搜索、根据时间戳和关键词快速定位故障、留存 SSH 登录和 sudo 记录做安全审计，都是 ELK 的核心用途。B/C/D 是常见误解：日志平台帮你'看得清'，但不自动修故障，更不能替代备份，也不提升硬件性能。",
+      "explanation": "集中搜索（如 100 台服务器的日志在一个搜索框里查）、根据时间戳和关键词快速定位故障、留存 SSH 登录和 sudo 记录做安全审计，都是 ELK 的核心用途。自动修复故障、替代数据备份、提升硬件性能则是常见误解——日志平台帮你'看得清'，但不会自动动手修复，也不承担备份职责。",
       "chapter": "courses/monitoring/04-elk.md"
     },
     {

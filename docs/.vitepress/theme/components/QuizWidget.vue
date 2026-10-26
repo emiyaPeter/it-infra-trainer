@@ -210,7 +210,10 @@
 
     <!-- ============ 错题本 ============ -->
     <div v-else-if="view === 'wrongbook'">
-      <p class="qw-hint">按题库分组；重做答对后自动移出。配好 AI 密钥后，每道错题可以要一份针对性精讲。</p>
+      <p class="qw-hint">
+        按题库分组；重做答对后自动移出。配好 AI 密钥后，每道错题可以要一份针对性精讲。
+        发现题目有误？<a class="qw-feedback-link" href="https://github.com/emiyaPeter/it-infra-trainer/issues/new?template=question-report.md" target="_blank" rel="noopener">报告题目问题 →</a>（进入审校流程）
+      </p>
       <div v-if="!currentUser" class="qw-login-hint">未登录不保存错题——登录后做题才会收集到这里。</div>
       <div v-if="!wrongGroups.length" class="qw-empty">🎉 错题本是空的（或还没有做题记录）</div>
       <div v-for="g in wrongGroups" :key="g.quizId" class="qw-wb-group">
@@ -1044,6 +1047,11 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--vp-c-text-1);
   line-height: 1.6;
+}
+
+.qw-feedback-link {
+  color: var(--vp-c-brand-1);
+  text-decoration: underline;
 }
 
 /* ---- 题库卡片 ---- */

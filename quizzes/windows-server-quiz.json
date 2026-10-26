@@ -9,13 +9,13 @@
       "type": "multiple-choice",
       "question": "刚装好的 Windows Server 2022 将来要提升为域控制器（DC 通常兼作 DNS 服务器），初始配置时为什么要设置静态 IP，并把 DNS 指向 127.0.0.1？",
       "options": [
-        "为了让服务器访问外网的速度更快",
+        "静态 IP 的服务器访问外网时路由更直接，网页加载速度更快",
         "DC 的 IP 一变整个域都会瘫痪，所以必须永远静态 IP；这台机器将来是 DNS 服务器，所以 DNS 先指向自己",
-        "静态 IP 是激活评估版 180 天试用的必要条件",
-        "因为 DHCP 服务无法与 DNS 服务部署在同一台服务器上"
+        "静态 IP 是激活评估版 180 天试用的前置条件，用 DHCP 地址无法完成激活",
+        "DHCP 服务与 DNS 服务互斥，按微软设计不能部署在同一台服务器上"
       ],
       "correct": 1,
-      "explanation": "课程明确指出：DC 通常兼作 DNS，IP 一变整个域都会瘫痪，所以 DC 必须永远使用静态 IP；DNS 指向 127.0.0.1 是因为这台机器将来就是 DNS 服务器。静态 IP 与上网速度和评估版激活无关；DHCP 与 DNS 也可以同机部署。",
+      "explanation": "DC 通常兼作域的 DNS 服务器，客户端靠 DNS 里的 SRV 记录找 DC，DC/DNS 的 IP 一变整个域都会瘫痪，所以 DC 必须永远使用静态 IP；这台机器将来就是 DNS 服务器，所以 DNS 先指向 127.0.0.1。静态 IP 与上网速度和评估版激活无关；DHCP 与 DNS 也完全可以同机部署。",
       "chapter": "courses/windows-server/01-installation.md"
     },
     {
@@ -24,18 +24,18 @@
       "question": "安装菜单里还有不带 Desktop Experience 的 Server Core 版本。关于 Server Core 与 Desktop 版的区别，以下说法正确的是？",
       "options": [
         "Server Core 没有图形界面，因此无法运行 PowerShell 脚本",
-        "学习阶段必须直接安装 Server Core 才能理解概念",
-        "Server Core 只有命令行（PowerShell），无浏览器、无 GUI 攻击面，占用更小、更安全，微软推荐生产环境使用",
-        "Server Core 是精简版系统，缺少与正式版一致的核心功能"
+        "学习阶段必须直接安装 Server Core，否则无法真正理解服务器概念",
+        "Server Core 只有命令行，无浏览器和 GUI 攻击面，占用更小更安全，微软推荐生产使用",
+        "Server Core 是精简版系统，缺少正式版具备的许多核心服务角色"
       ],
       "correct": 2,
-      "explanation": "Server Core 只有命令行（PowerShell），没有浏览器和 GUI 攻击面，更安全、占用更小，微软推荐生产使用；它与正式版功能一致。它完全可以运行 PowerShell；课程建议学习阶段先装 Desktop 版理解概念，之后再专练 Core。",
+      "explanation": "Server Core 只保留命令行（PowerShell），没有浏览器和 GUI 攻击面，更安全、占用更小，微软推荐生产环境使用；它与 Desktop 版核心功能一致，也完全可以运行 PowerShell。学习阶段一般建议先装 Desktop 版理解概念，之后再专门练习 Core。",
       "chapter": "courses/windows-server/01-installation.md"
     },
     {
       "id": "q3",
       "type": "multiple-choice",
-      "question": "CLIENT01 执行加域时报错\"找不到域 corp.local\"。按照课程的排障思路，第一步应该检查什么？",
+      "question": "CLIENT01 执行加域时报错\"找不到域 corp.local\"。排查这类故障，第一步应该检查什么？",
       "options": [
         "客户端网卡的 DNS 是否指向 DC01（192.168.56.10）",
         "域管理员 Administrator 的密码是否被修改",
@@ -43,7 +43,7 @@
         "是否应该把 DC01 的 IP 改回 DHCP 自动获取"
       ],
       "correct": 0,
-      "explanation": "AD 高度依赖 DNS：客户端找 DC 靠 DNS 里的 SRV 记录，课程排障表中\"找不到域\"对应的原因就是客户端 DNS 没指向 DC，解决办法是网卡 DNS 改为 192.168.56.10。密码输错是另一种报错（要加 CORP\\ 前缀）；重装系统和给 DC 改 DHCP 都不是解决办法。",
+      "explanation": "AD 高度依赖 DNS：客户端找 DC 靠 DNS 里的 SRV 记录，'找不到域'最常见的原因就是客户端 DNS 没指向 DC，解决办法是网卡 DNS 改为 DC01 的地址（192.168.56.10）。密码输错是另一种报错（要加 CORP\\ 前缀）；重装系统和给 DC 改 DHCP 都不是解决办法。",
       "chapter": "courses/windows-server/02-ad-domain.md"
     },
     {
@@ -51,41 +51,41 @@
       "type": "multiple-choice",
       "question": "执行 Install-ADDSForest 提升域控制器时指定的 SafeModeAdministratorPassword（DSRM 密码）是做什么用的？",
       "options": [
-        "域管理员的日常登录密码",
-        "客户端加域时弹窗输入的凭据密码",
-        "Kerberos 认证中加密服务票据的密钥",
-        "目录服务还原模式密码，AD 数据库发生灾难时用它修复，生产环境丢失它是一场灾难"
+        "域管理员 Administrator 日常登录域时使用的密码",
+        "客户端执行加域操作时弹窗输入的管理凭据密码",
+        "Kerberos 认证过程中用来加密服务票据的密钥",
+        "目录服务还原模式（DSRM）密码，AD 数据库灾难修复时使用"
       ],
       "correct": 3,
-      "explanation": "SafeModeAdministratorPassword 是目录服务还原模式（DSRM）密码，用于 AD 数据库出灾难时修复，课程强调务必记牢。它不是日常登录密码，也不是加域凭据；Kerberos 认证的关键是时间同步（偏差超 5 分钟即认证失败），与该密码无关。",
+      "explanation": "SafeModeAdministratorPassword 是目录服务还原模式（DSRM）密码，用于 AD 数据库发生灾难时修复，务必记牢，生产环境丢失它是一场灾难。它不是日常登录密码，也不是加域凭据；Kerberos 认证的关键是时间同步（偏差超 5 分钟即认证失败），与该密码无关。",
       "chapter": "courses/windows-server/02-ad-domain.md"
     },
     {
       "id": "q5",
       "type": "multiple-choice",
-      "question": "按照课程的 AGDLP 授权原则，本地域组（DL）应该怎么建、怎么用？",
+      "question": "按照 AGDLP 授权原则，本地域组（DL）应该怎么建、怎么用？",
       "options": [
-        "按部门建，只能装本域用户，能被任何域引用",
-        "按资源建（如\"文件服务器-读写-DL\"），能装任何域的组和用户，但只在本域有效，最终权限授给它",
+        "按部门建，只能装本域用户，但能被任何域引用（这是全局组的特点）",
+        "按资源建，可装任何域的组和用户，但只在本域有效，权限最终授给它",
         "多域林中跨域使用，但成员变化会触发全林复制，应尽量少用",
-        "只用作邮件列表分发，不能用于权限授权"
+        "只用作邮件列表分发，不能参与权限授权（这是通讯组的特点）"
       ],
       "correct": 1,
-      "explanation": "本地域组能装任何域的组和用户，但只在本地域有效，应按资源建并给它授权；A 选项描述的是全局组（按部门建、装本域用户、能被任何域引用）；C 选项描述的是通用组；D 选项描述的是通讯组。AGDLP 的链路是：用户→全局组→本地域组→授权。",
+      "explanation": "本地域组能装任何域的组和用户，但只在本地域有效，应按资源建（如\"文件服务器-读写-DL\"）并把最终权限授给它。按部门建、只装本域用户、能被任何域引用描述的是全局组；跨域使用、成员变化触发全林复制的是通用组；只作邮件分发的是通讯组。AGDLP 链路：用户→全局组→本地域组→授权。",
       "chapter": "courses/windows-server/03-users-groups.md"
     },
     {
       "id": "q6",
       "type": "multiple-choice",
-      "question": "一名员工离职，按照课程推荐的生产处理规范，正确的操作顺序是什么？",
+      "question": "一名员工离职，按照生产环境的通行处理规范，正确的操作顺序是什么？",
       "options": [
-        "先用 Disable-ADAccount 立即禁用账号，再从所有全局组移除，30/90 天后按制度删除",
-        "当天直接删除账号，干净利落",
-        "把账号密码重置后交给交接的同事继续使用",
-        "把账号移入 Domain Admins 以便保留全部权限"
+        "先用 Disable-ADAccount 禁用账号并移出全局组，30/90 天后再按制度删除",
+        "离职当天直接删除账号，最干净利落、不留任何隐患",
+        "把账号密码重置后交给交接的同事，两人共用一个账号",
+        "把账号移入 Domain Admins 保留全部权限，便于日后回访处理"
       ],
       "correct": 0,
-      "explanation": "课程规范：先 Disable-ADAccount 禁用（保留对象做审计）、从全局组移除，30/90 天后再按公司制度删除，以保住 SID 关联的审计记录。直接删除会丢审计记录；账号转借他人是安全大忌；把人塞进 Domain Admins 更是生产大忌。",
+      "explanation": "通行规范是先 Disable-ADAccount 立即禁用（保留对象做审计）、从全局组移除，30/90 天后再按公司制度删除，以保住 SID 关联的审计记录。直接删除会丢审计记录；账号转借他人是安全大忌；把离职账号塞进 Domain Admins 更是生产大忌。",
       "chapter": "courses/windows-server/03-users-groups.md"
     },
     {
@@ -93,13 +93,13 @@
       "type": "multiple-choice",
       "question": "你在\"IT部\"OU 上链接了一个 GPO 并配置了密码策略，但域账号改密码时完全不受限制。最可能的原因是什么？",
       "options": [
-        "修改策略后忘记重启域控制器",
-        "组策略只对管理员账号生效",
-        "密码策略配置在低于域级别的 OU 上对域账号无效，必须配在域级的 Default Domain Policy 中",
+        "修改策略后忘记重启域控制器，策略要重启后才生效",
+        "组策略只对管理员账号生效，普通域账号不受 GPO 管控",
+        "密码策略必须配在域级 Default Domain Policy，挂 OU 上对域账号无效",
         "忘记执行 gpupdate /force，所以策略永远不生效"
       ],
       "correct": 2,
-      "explanation": "课程的高频坑：密码策略必须在域级别的 Default Domain Policy 里配置，挂在 OU 上对域账号永远无效。组策略对普通用户同样生效；gpupdate /force 只是手动刷新（默认 90 分钟也会自动刷新），策略挂错了位置刷新多少次都没用。",
+      "explanation": "这是 AD 运维的高频坑：密码策略必须在域级别的 Default Domain Policy 里配置，配在低于域级别的 OU 上对域账号永远无效。组策略对普通用户同样生效；gpupdate /force 只是手动刷新（默认 90 分钟也会自动刷新），策略挂错了位置刷新多少次都没用；域控制器也不需要重启才应用策略。",
       "chapter": "courses/windows-server/04-group-policy.md"
     },
     {
@@ -108,12 +108,12 @@
       "question": "用户从网络路径 \\\\DC01\\IT资料 访问共享文件夹时，他的实际有效权限是怎么计算的？",
       "options": [
         "共享权限和 NTFS 权限分别独立生效，实际取其中更宽的一个",
-        "共享权限（网络入口）与 NTFS 权限（文件系统）取交集",
         "只由共享权限决定，NTFS 权限仅本地登录时有效",
-        "只由 NTFS 权限决定，共享权限只是摆设"
+        "只由 NTFS 权限决定，共享权限只是摆设",
+        "共享权限（网络入口）与 NTFS 权限（文件系统）取交集"
       ],
-      "correct": 1,
-      "explanation": "课程公式：共享权限（网络入口）∩ NTFS 权限（文件系统）= 实际有效权限，两层都放行才能访问。正因为如此，生产实践是共享权限给 Everyone 完全控制、只维护 NTFS 一套精细化权限，避免两套权限打架没人看得懂。",
+      "correct": 3,
+      "explanation": "标准计算规则：共享权限（网络入口）∩ NTFS 权限（文件系统）= 实际有效权限，两层都放行才能访问。正因为如此，生产实践是共享权限给 Everyone 完全控制、只维护 NTFS 一套精细化权限，避免两套权限打架没人看得懂。",
       "chapter": "courses/windows-server/05-server-services.md"
     },
     {

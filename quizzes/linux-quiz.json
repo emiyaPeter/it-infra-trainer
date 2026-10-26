@@ -54,7 +54,7 @@
         "显示行号"
       ],
       "correct": 1,
-      "explanation": "`-r` (recursive) 递归搜索目录及其所有子目录中的文件。"
+      "explanation": "`-r` (recursive) 递归搜索目录及其所有子目录中的文件。反向匹配是 `-v`，显示行号是 `-n`。"
     },
     {
       "id": "q5",
@@ -62,12 +62,12 @@
       "question": "在 Bash 脚本中，`$?` 表示什么？",
       "options": [
         "脚本的PID",
-        "上一条命令的退出码",
         "当前用户ID",
-        "参数个数"
+        "参数个数",
+        "上一条命令的退出码"
       ],
-      "correct": 1,
-      "explanation": "$? 是上一条命令的退出状态码。0 表示成功，非0 表示失败。"
+      "correct": 3,
+      "explanation": "$? 是上一条命令的退出状态码。0 表示成功，非0 表示失败。脚本的 PID 是 $$，参数个数是 $#。"
     },
     {
       "id": "q6",
@@ -76,7 +76,8 @@
       "correct": "systemctl start nginx",
       "accepts": [
         "sudo systemctl start nginx",
-        "systemctl start nginx.service"
+        "systemctl start nginx.service",
+        "sudo systemctl start nginx.service"
       ],
       "explanation": "systemctl start nginx 启动服务，systemctl enable nginx 设置开机自启，systemctl status nginx 查看状态。"
     },
@@ -85,26 +86,26 @@
       "type": "multiple-choice",
       "question": "管道符 `|` 的作用是什么？",
       "options": [
-        "把输出写入文件",
-        "把一个命令的输出作为另一个命令的输入",
-        "在后台运行命令",
-        "注释掉一行代码"
+        "把左侧命令的输出保存到文件里",
+        "让命令在后台继续运行不占终端",
+        "把这一行标记为注释，执行时跳过",
+        "把左侧命令的输出传给右侧命令作输入"
       ],
-      "correct": 1,
+      "correct": 3,
       "explanation": "管道 `|` 连接两个命令，左边命令的 stdout 变成右边命令的 stdin。`>` 用于写入文件，`&` 用于后台运行，`#` 用于注释。"
     },
     {
       "id": "q8",
       "type": "multiple-choice",
-      "question": "怎样在脚本中定义一个函数？",
+      "question": "以下哪种写法是 Bash 中合法的函数定义？",
       "options": [
-        "function myFunc { ... }",
         "def myFunc() { ... }",
         "myFunc() { ... }",
-        "A 和 C 都可以"
+        "function myFunc -> { ... }",
+        "myFunc = function { ... }"
       ],
-      "correct": 3,
-      "explanation": "Bash 中定义函数有两种语法：`myFunc() { ... }` 或 `function myFunc { ... }`，推荐使用第一种。"
+      "correct": 1,
+      "explanation": "Bash 定义函数的标准语法是 `myFunc() { ... }`（另一种可用的写法是 `function myFunc { ... }`）。def 是 Python 关键字，`->` 和 `=` 的写法都不是 Bash 语法。"
     },
     {
       "id": "q9",

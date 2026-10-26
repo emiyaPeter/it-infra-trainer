@@ -15,7 +15,7 @@
         "裸金属服务器"
       ],
       "correct": 2,
-      "explanation": "SaaS 是'什么都不管'：应用、运行环境、硬件全部由云厂商负责，用户只管使用。IaaS 要管 OS 及以上（如 AWS EC2），PaaS 要管应用和数据（如 RDS），运维的主要领域正是 IaaS + PaaS。",
+      "explanation": "SaaS 是'什么都不管'：应用、运行环境、硬件全部由云厂商负责，用户只管使用。IaaS 要管 OS 及以上（如 AWS EC2）；PaaS 只管应用和数据（如 AWS RDS：数据库引擎的安装、补丁、备份、高可用由云厂商负责，用户仍要管理库内的数据与配置），运维的主要工作领域正是 IaaS + PaaS。",
       "chapter": "courses/cloud/01-cloud-concepts.md"
     },
     {
@@ -29,20 +29,20 @@
         "本地电脑办公"
       ],
       "correct": 2,
-      "explanation": "'核心数据放私有云、前端放公有云'正是课程给出的混合云典型场景。全部用 AWS/Azure/阿里云是公有云，全部自建 OpenStack（多为合规需求）是私有云，D 与云计算无关。",
+      "explanation": "'核心数据放私有云、对外前端放公有云'正是混合云的典型场景：全部用 AWS/Azure/阿里云是公有云，全部自建 OpenStack（多为合规需求）是私有云，D 与云计算无关。",
       "chapter": "courses/cloud/01-cloud-concepts.md"
     },
     {
       "id": "q3",
       "type": "multiple-choice",
-      "question": "课程强调的 'AWS 安全第一课' 是什么？",
+      "question": "关于 AWS 账号安全，公认的'第一课'最佳实践是什么？",
       "options": [
-        "日常操作直接用 root 账号，权限最大最方便",
-        "不用 root 账号，创建 IAM 用户、只给最小权限并启用 MFA",
-        "把 Access Key 写进代码仓库，方便团队随时取用",
-        "全组同事共用一个账号密码"
+        "日常操作直接用 root 账号，权限最大、用起来最省事",
+        "把 Access Key 写进代码仓库，方便团队成员随时取用",
+        "全组同事共用一个账号密码，省去开账号的麻烦",
+        "不用 root 账号，创建 IAM 用户、只给最小权限并启用 MFA"
       ],
-      "correct": 1,
+      "correct": 3,
       "explanation": "root 账号权限过大、一旦泄露损失不可控，正确做法是创建 IAM 用户、按需授予最小权限并开启 MFA；AWS 还有用户/组/角色三种身份，策略用 JSON 描述权限。A/C/D 都是典型的安全隐患，也是真实事故的高发原因。",
       "chapter": "courses/cloud/02-aws-core.md"
     },
@@ -53,11 +53,11 @@
       "options": [
         "子网里每台实例都有公网 IP，可被互联网直接访问",
         "只能内部访问，一般经 NAT Gateway 才能访问互联网",
-        "它是专门存放 S3 对象数据的子网",
-        "里面只能运行 Windows 虚拟机"
+        "它是专门用来存放 S3 对象存储数据的专用子网",
+        "里面只能运行 Windows 虚拟机，Linux 无法启动"
       ],
       "correct": 1,
-      "explanation": "课程拓扑是 Internet → IGW → Public 子网(Web) → NAT GW → Private 子网(DB)：Public 子网有公网 IP，Private 子网只内网可达，数据库等敏感服务放在这里更安全。C/D 都是无中生有的说法。",
+      "explanation": "典型 VPC 拓扑是 Internet → IGW → Public 子网(Web) → NAT GW → Private 子网(DB)：Public 子网有公网 IP，Private 子网只内网可达、出网一般经 NAT Gateway，数据库等敏感服务放在这里更安全。A 与 Private 子网的定义相反；C/D 都是无中生有的说法。",
       "chapter": "courses/cloud/02-aws-core.md"
     },
     {
@@ -65,13 +65,13 @@
       "type": "multiple-choice",
       "question": "关于 Azure AD（Entra ID），下列说法正确的是？",
       "options": [
-        "它就是 Windows AD 换了个名字，两者完全一样",
-        "它是云原生的企业身份管理服务，支持 SSO/MFA/条件访问",
-        "它只能用来登录 Azure 的虚拟机",
-        "它是一种磁盘冗余技术"
+        "它就是 Windows AD 换了个名字，两者完全一样，可以混用",
+        "它只能用来登录 Azure 的虚拟机，管不了其他应用",
+        "它是一种磁盘冗余技术，用来保护数据不丢失",
+        "它是云原生的企业身份管理服务，支持 SSO/MFA/条件访问"
       ],
-      "correct": 1,
-      "explanation": "课程特别提醒两者不同：Azure AD 是云原生的企业身份管理核心，支持单点登录、MFA、条件访问。'和 Windows AD 完全一样'是初学者最常见的误解；C/D 与身份管理毫无关系。",
+      "correct": 3,
+      "explanation": "两者不同：Azure AD（Entra ID）是云原生的企业身份管理核心，支持单点登录、MFA、条件访问。'和 Windows AD 完全一样'是初学者最常见的误解；B、C 与身份管理的定位不符。",
       "chapter": "courses/cloud/03-azure-basics.md"
     },
     {
@@ -79,13 +79,13 @@
       "type": "multiple-choice",
       "question": "关于中国区 Azure，下列说法正确的是？",
       "options": [
-        "由世纪互联运营，门户网站是 portal.azure.cn，数据不出境",
-        "和全球版完全相同，没有任何差异",
-        "由亚马逊 AWS 代为运营",
-        "中国区所有服务都永久免费"
+        "由世纪互联运营，门户是 portal.azure.cn，数据不出境",
+        "和全球版完全相同，账号与订阅可以直接通用，没有任何差异",
+        "由亚马逊 AWS 代为运营，复用了 AWS 中国的数据中心",
+        "中国区所有服务都永久免费，用来做实验最划算"
       ],
       "correct": 0,
-      "explanation": "中国区 Azure 由世纪互联运营，门户是 portal.azure.cn（不是 portal.azure.com），虚拟机规格与全球版不同、部分服务未上线，数据不出境满足合规要求。'完全相同'是典型误解；C/D 与事实不符。",
+      "explanation": "中国区 Azure 由世纪互联运营，门户是 portal.azure.cn（不是 portal.azure.com），虚拟机规格与全球版不同、部分服务未上线，数据不出境满足合规要求。B 是典型误解；C、D 与事实不符。",
       "chapter": "courses/cloud/03-azure-basics.md"
     },
     {
@@ -94,12 +94,12 @@
       "question": "从云成本管理角度，给每个资源打上 Environment=Dev、Owner=TeamA 这样的标签，主要好处是什么？",
       "options": [
         "成本报告可以按团队、按环境一目了然地拆分，找出花钱大头",
-        "自动提升服务器的 CPU 性能",
-        "标签能自动阻止一切超支行为",
-        "可以替代 IAM 权限管理"
+        "资源打上标签后会自动提升服务器的 CPU 与网络性能",
+        "有了标签就能自动阻止一切超支行为，无需再设预算",
+        "标签可以完全替代 IAM 权限管理，简化账号治理"
       ],
       "correct": 0,
-      "explanation": "标签是成本归集的基础：有了 Environment/Owner 标签，成本报告才能按团队和环境拆分，知道谁在烧钱、哪个环境最贵。标签本身不提升性能、不能自动止损，更与权限管理是两回事。",
+      "explanation": "标签是成本归集的基础：有了 Environment/Owner 标签，成本报告才能按团队和环境拆分，知道谁在烧钱、哪个环境最贵。标签本身不提升性能、不能自动止损（防超支要靠 Budget 告警等机制），更与权限管理是两回事。",
       "chapter": "courses/cloud/04-cloud-cost.md"
     },
     {
@@ -113,14 +113,14 @@
         "从不查看 Billing Dashboard，眼不见心不烦"
       ],
       "correct": 1,
-      "explanation": "自动关机消掉非生产环境夜间的空转费用，Spot 实例比按需便宜 90%，是课程给出的两大利器。测试资源不删正是'月底账单爆炸'的头号原因；用不上的 Provisioned IOPS 贵约 10 倍；不看账单只会让问题越滚越大。",
+      "explanation": "自动关机消掉非生产环境夜间的空转费用；Spot 实例最高可比按需价格便宜约 90%（实际折扣随实例类型和供需波动），这两点是控制成本的两大利器。测试资源不删正是'月底账单爆炸'的头号原因；用不上的 Provisioned IOPS 价格可达普通盘的约 10 倍（同样随盘型和区域波动）；不看账单只会让问题越滚越大。",
       "chapter": "courses/cloud/04-cloud-cost.md"
     },
     {
       "id": "q9",
       "type": "short-answer",
-      "question": "你是新入职的运维工程师，老板担心下个月云账单又超标。请结合课程内容，提出至少 4 条控制云成本的具体措施，并各用一句话说明为什么有效。",
-      "reference": "要点：① 给资源打标签（Environment=Dev、Owner=TeamA），成本报告能按团队/环境归集，找出花钱大头；② 设置 Budget 告警，花费到预算的 80% 就发邮件提醒，防患于未然；③ 非生产环境配置自动关机（晚上关、早上开），消掉夜间和周末的空转费用；④ 选对规格：用不上 Provisioned IOPS 就别勾（贵约 10 倍），可中断任务用 Spot 实例（便宜 90%）；⑤ 测试完及时删除资源（EC2/RDS 按小时计费，忘删跑一个月就是事故），并定期查看 Billing Dashboard/Cost Explorer 掌握趋势。",
+      "question": "你是新入职的运维工程师，老板担心下个月云账单又超标。请提出至少 4 条控制云成本的具体措施，并各用一句话说明为什么有效。",
+      "reference": "要点：① 给资源打标签（Environment=Dev、Owner=TeamA），成本报告能按团队/环境归集，找出花钱大头；② 设置 Budget 告警，花费到预算的 80% 就发邮件提醒，防患于未然；③ 非生产环境配置自动关机（晚上关、早上开），消掉夜间和周末的空转费用；④ 选对规格：用不上 Provisioned IOPS 就别勾（价格可达约 10 倍，随盘型波动），可中断任务用 Spot 实例（最高便宜约 90%，随供需波动）；⑤ 测试完及时删除资源（EC2/RDS 按小时计费，忘删跑一个月就是事故），并定期查看 Billing Dashboard/Cost Explorer 掌握趋势。",
       "chapter": "courses/cloud/04-cloud-cost.md"
     }
   ]

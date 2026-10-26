@@ -9,12 +9,12 @@
       "type": "multiple-choice",
       "question": "想把一台 Linux 主机变成路由器、为别的机器转发数据包，必须打开哪个内核开关？",
       "options": [
-        "net.ipv4.ip_forward=1",
         "net.ipv4.icmp_echo_ignore_all=0",
         "firewall.allow_routing=true",
+        "net.ipv4.ip_forward=1",
         "不需要任何开关，Linux 默认就转发"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Linux 默认不转发别人的包（安全默认），用 sysctl -w net.ipv4.ip_forward=1 临时打开，写入 /etc/sysctl.d/ 并 sysctl --system 永久生效。注意转发通了不等于能上外网，跨网段上网还需要下一章的 NAT（MASQUERADE）。",
       "chapter": "courses/advanced-networking/01-routing-vlan.md"
     },
@@ -23,10 +23,10 @@
       "type": "multiple-choice",
       "question": "\"访客 WiFi 访问不了公司内网系统\"，这背后最可能用到的技术是什么？",
       "options": [
-        "VLAN：在二层把一个物理网络切成多个互不相通的广播域",
-        "DNS：把内网域名解析到错误地址",
-        "VPN：把访客流量加密后丢弃",
-        "负载均衡：把访客流量分到别的机房"
+        "VLAN：二层把物理网络切成互不相通的广播域",
+        "DNS：把内网域名故意解析到错误地址",
+        "VPN：把访客流量加密后直接丢弃",
+        "负载均衡：把访客流量调度到别的机房"
       ],
       "correct": 0,
       "explanation": "VLAN（802.1Q，帧上打 4 字节标签）在二层把一个物理网络切成多个互不相通的广播域，办公网/访客网/服务器网同线隔离，再靠路由器或防火墙策略控制互访。它与 DNS、VPN、负载均衡无关。",
@@ -37,10 +37,10 @@
       "type": "multiple-choice",
       "question": "一个网络包到达 iptables 的某条链后，规则是按什么顺序生效的？",
       "options": [
-        "从下到上，最后一条优先",
-        "从上到下扫描，首个命中即执行，全不中走默认策略",
-        "随机匹配，概率生效",
-        "所有规则同时生效，动作取最严格的一个"
+        "从下到上，写在最后的规则优先生效",
+        "从上到下扫描，命中即执行，全不中走默认策略",
+        "随机匹配规则，每条按概率生效",
+        "所有规则同时判定，动作取最严格者"
       ],
       "correct": 1,
       "explanation": "包每到一站，从上到下扫该链的规则，命中即执行（ACCEPT/DROP），全不中走末尾的默认策略。所以顺序很重要：把 DROP 写在 ACCEPT 上面，后面的放行永远不生效——这是常见误操作，可用 --line-numbers 查看、用 -I 按序号插入。",
@@ -51,12 +51,12 @@
       "type": "multiple-choice",
       "question": "内网主机 192.168.100.2 要经 Linux 路由器共享上网，路由器上添加 iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o eth0 -j MASQUERADE 的作用是什么？",
       "options": [
-        "把外网访问内网的流量转发给 192.168.100.2",
-        "把内网包的源地址改写为路由器出口地址，让回包能找到路由器",
-        "加密内网主机的所有上网流量",
-        "限制内网每个主机的上网速度"
+        "把外网访问内网的流量转发发布给内网主机",
+        "加密内网主机的全部上网流量（类 VPN）",
+        "限制内网每台主机的上网带宽速率",
+        "把内网包源地址改写为出口地址，回包才能找到路由器"
       ],
-      "correct": 1,
+      "correct": 3,
       "explanation": "MASQUERADE 是源地址改写（SNAT 的动态 IP 版）：内网私网地址在公网不可路由，出站时改成路由器出口地址，回包到达路由器后再自动改回内网地址。它不做转发发布（那是 DNAT）、不加密、不限速。",
       "chapter": "courses/advanced-networking/02-firewall.md"
     },
@@ -65,10 +65,10 @@
       "type": "multiple-choice",
       "question": "WireGuard 配置里 AllowedIPs 写成 0.0.0.0/0 是什么含义？",
       "options": [
-        "只把发往某一个 IP 的流量走隧道",
-        "禁止任何流量走隧道",
+        "只把发往某一个特定 IP 的流量走隧道",
+        "禁止任何流量进入这条隧道",
         "本机全部流量都走隧道（\"翻回家里上网\"模式）",
-        "允许对端随意伪装任何源地址"
+        "允许对端随意伪装任何源地址发包"
       ],
       "correct": 2,
       "explanation": "AllowedIPs 有双重语义：既是路由（目的地址落在其中就走隧道），又是对端准入校验。0.0.0.0/0 = 全部流量走隧道，通常配合路由器端 NAT 实现\"翻回家里上网\"。10.9.0.2/32 是只把发往这一个 IP 的流量给对方（点对点），10.9.0.0/24 是整个网段组网。",
@@ -79,10 +79,10 @@
       "type": "multiple-choice",
       "question": "WireGuard 隧道搭好后，用哪条命令判断隧道是否健康，看什么字段？",
       "options": [
-        "ifconfig wg0，看有没有 IP 地址",
-        "wg，看 latest handshake 时间——超过 2-3 分钟没有新握手即异常",
-        "netstat -r，看路由表大小",
-        "ping 127.0.0.1，看本机协议栈是否正常"
+        "ifconfig wg0，看接口有没有分到 IP",
+        "wg，看 latest handshake 是否在 2-3 分钟内",
+        "netstat -r，看路由表条目数量",
+        "ping 127.0.0.1，看本机协议栈正常否"
       ],
       "correct": 1,
       "explanation": "sudo wg 查看状态，latest handshake 有时间 = 隧道活了，是\"隧道是否健康\"的金指标；超过 2-3 分钟没有新握手即异常。互 ping 不通时也应先两边 wg 核对各 Peer 的 AllowedIPs 网段。ifconfig/netstat/ping 回环都不能反映隧道健康。",
@@ -108,11 +108,11 @@
       "question": "tcpdump 抓包发现：客户端反复发出 Flags [S]（SYN），但始终收不到 Flags [S.]（SYN+ACK）。这说明什么？",
       "options": [
         "对方端口没开或服务挂了，明确拒绝连接",
-        "SYN 没到达对方，或被中间的防火墙丢弃——问题在链路中间",
         "连接已正常建立，进入数据传输阶段",
-        "对方正在正常关闭连接（四次挥手）"
+        "对方正在正常关闭连接（四次挥手）",
+        "SYN 没到对方或被中间防火墙丢弃——链路问题"
       ],
-      "correct": 1,
+      "correct": 3,
       "explanation": "只看到 S 没有 S.，说明 SYN 没到对方或被墙/防火墙丢，是中间问题。对比其他情形：收到 R. 才是对方明确拒绝（端口没开/服务挂了）；S. 回来了但没后续是回程路由问题；四次 [F.]/[.] 是正常断开。",
       "chapter": "courses/advanced-networking/04-packet-analysis.md"
     },
