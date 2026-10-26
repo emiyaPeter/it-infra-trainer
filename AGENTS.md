@@ -2,6 +2,8 @@
 
 本项目采用 AI 结对开发：需求与架构人工主导，实现由 AI 辅助，全部产出经人工 review 并通过自检护栏。
 
+**决策实录（人的产品决策，详细过程见 docs/product.md"人机分工实录"）**：双轨完成机制（人质疑自报完成，ADR-009）、证据分级报告（人追问刷课漏洞，ADR-011）、按需对抗审计（人的三轮直觉+AI 成本质疑，ADR-010）、真截图双断点验收（人两次点名验收质量，坑 7/9/10）、题库效度护栏（人的面试官视角审计催生，v2.8）。
+
 ## 技术栈
 
 - Node.js 20+ ESM（`"type": "module"`，import 语法）
@@ -39,7 +41,7 @@ npm run dev           # 启动站点人工验证
 - localStorage 一律经 `theme/utils/store.js` 读写（`_v` 信封 + 迁移钩子），不要直接 `JSON.parse(localStorage...)` 新增存储；备份格式 v2（users+progress+quiz+wrongbook，导入兼容 v1）
 - E2E：`npm run test:e2e`（前提 dist 为子路径构建；本地 Windows 用 `E2E_CHANNEL=msedge` 复用系统 Edge，CI 装 chromium）；改测验/进度/判分相关代码后必须跑；新增用户旅程时在 `test/e2e.mjs` 加断言
 - 账户安全：恢复码只存哈希（ADR-011）；**明文恢复码不得写日志/备份明文/localStorage**
-- 题库约定：`quizzes/*.json` 构建时经 `import.meta.glob` 自动进 Web 测验页（新增文件零代码）；顶层 `module` 字段声明对应的 `courses/` 目录名（测验 ≥80 分自动点亮该模块章节）；填空题用 `accepts[]` 列可接受写法；无模块映射的题库为纯练习。**题型**：multiple-choice / fill-blank（本地判分）+ short-answer / coding（主观题：`reference` 必填字符串参考要点，AI 判卷三档，无密钥转自评不计分，见 ADR-010）；题目可带 `chapter` 字段（`courses/<mod>/<file>.md`）联动章节页"本章小测"入口与错题回读。**结构错误由 `npm test` 第 3 步题库校验拦截**（scripts/validate-quizzes.js）
+- 题库约定：`quizzes/*.json` 构建时经 `import.meta.glob` 自动进 Web 测验页（新增文件零代码）；顶层 `module` 字段声明对应的 `courses/` 目录名（测验 ≥80 分自动点亮该模块章节）；填空题用 `accepts[]` 列可接受写法；无模块映射的题库为纯练习。**题型**：multiple-choice / fill-blank（本地判分）+ short-answer / coding（主观题：`reference` 必填字符串参考要点，AI 判卷三档，无密钥转自评不计分，见 ADR-010）；题目可带 `chapter` 字段（`courses/<mod>/<file>.md`）联动章节页"本章小测"入口与错题回读。**结构错误由 `npm test` 第 3 步题库校验拦截**（scripts/validate-quizzes.js，含**效度护栏**：≥6 道选择题的卷 correct 索引不得少于 3 个不同值、正确项显著最长告警——出题/改题必过，审校标准见 docs/question-audit.md）
 - 章节数/模块名**全部自动**：`theme/utils/chapters.js` 从 config.ts sidebar 反解（加章节只需改 sidebar——本来就要改）；不要再手工维护章节数常量
 
 ## 排障速查
