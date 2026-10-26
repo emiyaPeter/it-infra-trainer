@@ -86,7 +86,8 @@ await page.evaluate(() => {
   c.click()
 })
 await page.waitForSelector('.qw-option', { timeout: 15000 })
-const answers = [1, 1, 0, 2, 1, 0, 3, 1]
+// v2.8 审校后的 docker 答案键（quiz 审校会改 correct 索引，此处需同步）
+const answers = [1, 2, 0, 2, 3, 0, 1, 3]
 for (let i = 0; i < 8; i++) {
   await page.click(`.qw-option:nth-child(${answers[i] + 1})`)
   await page.waitForTimeout(250)
