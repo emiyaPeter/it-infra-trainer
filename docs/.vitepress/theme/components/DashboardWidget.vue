@@ -499,6 +499,33 @@ function loadDemoData() {
       progress.pages[slug] = { done: true, doneAt: now }
     }
     localStorage.setItem('it-trainer-progress-' + demo.id, JSON.stringify(progress))
+
+    // v2.8：演示数据补测验态——载入后成绩区/证书按钮/学习报告三态齐现
+    writeStore('it-trainer-quiz-' + demo.id, {
+      attempts: [
+        { quizId: 'docker-01', score: 92, correct: 11, total: 12, date: now },
+        { quizId: 'linux-01', score: 65, correct: 6, total: 9, date: now },
+      ],
+      verifiedModules: ['docker'],
+    }, 1)
+    writeStore('it-trainer-wrongbook-' + demo.id, [
+      {
+        key: 'linux-01/q3', quizId: 'linux-01', quizTitle: 'Linux 基础测验', qid: 'q3',
+        question: '哪个命令用于实时查看系统进程？', type: 'multiple-choice', isSubjective: false,
+        myAnswer: 'ps', correctDisplay: 'top',
+        explanation: 'top 实时显示进程和系统资源使用（htop 是其增强版）。ps 是快照，ls 是列文件，df 是磁盘使用。',
+        reference: '', chapter: 'courses/linux/01-command-line.md',
+        times: 2, lastAt: now, judgeSrc: '本地规则判分', aiExplanation: '',
+      },
+      {
+        key: 'networking-01/q6', quizId: 'networking-01', quizTitle: '网络基础综合测验', qid: 'q6',
+        question: '在 Linux 中使用什么命令查看 IP 地址？', type: 'fill-blank', isSubjective: false,
+        myAnswer: 'ifconfig', correctDisplay: 'ip addr',
+        explanation: 'ip addr 是现代 Linux 查看地址的方式，旧的 ifconfig 已逐渐被取代。',
+        reference: '', chapter: 'courses/networking/03-tcp-ip.md',
+        times: 1, lastAt: now, judgeSrc: '本地规则判分', aiExplanation: '',
+      },
+    ], 1)
   }
 
   refreshAll()

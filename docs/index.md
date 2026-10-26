@@ -10,6 +10,9 @@ hero:
       text: 🚀 开始学习
       link: /roadmap/
     - theme: alt
+      text: 📝 3 分钟体验测验
+      link: /quiz/
+    - theme: alt
       text: 📋 查看课程目录
       link: /courses/
     - theme: alt
@@ -19,23 +22,26 @@ hero:
 features:
   - icon: 📚
     title: 结构化课程
-    details: 17 个模块 78 章讲义，十个学习阶段全覆盖，从计算机硬件到 Kubernetes 与灾备体系，循序渐进。
+    details: 17 个模块 87 章讲义，十个学习阶段全覆盖，从计算机硬件到 Kubernetes 与灾备体系，循序渐进。
+  - icon: ✅
+    title: 在线测验与达标点亮
+    details: 19 套题库 184 题逐题作答——模块测验 ≥80 分自动点亮全部章节；问答/实操题由 AI 三档判卷（自带密钥，站点零密钥），错题自动进错题本。
   - icon: 🤖
     title: AI 辅助编程课
     details: 从第一次 AI 对话到独立交付项目、通过求职面试的完整路径：提示词工程、代理工作流、简历与答辩实战。
   - icon: 🔬
     title: 动手实验与作业批改
     details: 实验在 WSL 真实环境中操作，系统自动验证结果；作业支持理论判分与实操环境检查。
-  - icon: ✅
-    title: 交互测验
-    details: 综合测验在终端中交互作答，即时评分与逐题解析，成绩自动记录。
   - icon: 📊
-    title: 进度追踪
-    details: 学完一页点「标记已完成」，仪表盘按阶段实时累计进度；数据可导出备份、跨设备迁移。
+    title: 证据分级的进度追踪
+    details: 阅读标记与测验达标双轨并存；学习报告把「测验达标验证」和「仅自报已读」分开呈现，结业成绩有据可查，还能一键生成结业证书。
+  - icon: 🎯
+    title: 模拟考试
+    details: 从全库随机抽题组卷、限时作答、到时自动交卷，备考节奏随时练。
   - icon: 💰
     title: 完全免费
     details: 所有工具均可免费获取 — WSL2、VirtualBox、Docker Desktop、VS Code、Minikube。零开销开始IT之旅。
-  - icon: 🎯
+  - icon: 🗺️
     title: 3年路线图
     details: 参照一线企业IT基础设施工程师岗位要求设计，从零基础到独立搭建完整基础设施，目标明确。
 
